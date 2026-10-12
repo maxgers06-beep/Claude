@@ -1,0 +1,1454 @@
+<title>Statistik &amp; LinA Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=STIX+Two+Text:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Kopfzeile mit Fachwechsel, links Themenliste, rechts Thema (Theorie → Ausprobieren → Üben) auf Karopapier */
+:root {
+  --paper: #F2F4F8;
+  --surface: #FFFFFF;
+  --ink: #17213A;
+  --muted: #586379;
+  --line: #D8DDE7;
+  --grid: rgba(23, 33, 58, .045);
+  --stat: #0B7A71;
+  --stat-soft: #DCF0EC;
+  --lin: #3A4CCB;
+  --lin-soft: #E4E7FB;
+  --on-accent: #FFFFFF;
+  --good: #1D8148;
+  --good-soft: #E0F2E7;
+  --bad: #BF3F2B;
+  --bad-soft: #FBE5E0;
+  --warn: #B26F12;
+  --v1: #C8452F;
+  --v2: #0B7A71;
+  --accent: var(--stat);
+  --accent-soft: var(--stat-soft);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F141D; --surface: #161D2A; --ink: #E5E9F1; --muted: #98A2B6; --line: #29324A;
+    --grid: rgba(229, 233, 241, .035);
+    --stat: #45C3B5; --stat-soft: #12302D; --lin: #93A0FF; --lin-soft: #1F2550; --on-accent: #0B111C;
+    --good: #52C485; --good-soft: #13301F; --bad: #F07B64; --bad-soft: #3A1D18; --warn: #E4AA4C;
+    --v1: #F07B64; --v2: #45C3B5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F141D; --surface: #161D2A; --ink: #E5E9F1; --muted: #98A2B6; --line: #29324A;
+  --grid: rgba(229, 233, 241, .035);
+  --stat: #45C3B5; --stat-soft: #12302D; --lin: #93A0FF; --lin-soft: #1F2550; --on-accent: #0B111C;
+  --good: #52C485; --good-soft: #13301F; --bad: #F07B64; --bad-soft: #3A1D18; --warn: #E4AA4C;
+  --v1: #F07B64; --v2: #45C3B5;
+  color-scheme: dark;
+}
+.app[data-subject="lin"] { --accent: var(--lin); --accent-soft: var(--lin-soft); }
+.app[data-subject="stat"] { --accent: var(--stat); --accent-soft: var(--stat-soft); }
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 0 56px; }
+
+/* Kopf */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding-block: 20px 22px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.brand-mark {
+  width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font: 700 1.25rem/1 var(--f-math); font-style: italic;
+}
+.brand h1 { margin: 0; font: 700 1.3rem/1.1 var(--f-display); letter-spacing: -.01em; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
+.seg { display: inline-flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.seg button {
+  border: 0; background: transparent; padding: 7px 14px; border-radius: 999px; font-weight: 600;
+  color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.chip {
+  display: inline-flex; align-items: center; gap: 10px; font: 600 .82rem/1 var(--f-mono);
+  padding: 8px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.chip b { color: var(--ink); }
+
+/* Gerüst */
+.layout { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 32px; align-items: start; }
+.side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.side h2 { margin: 0 0 8px; font: 600 .72rem/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.topics { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.topics button {
+  width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+  padding: 8px 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  color: var(--ink);
+}
+.topics button:hover { background: var(--surface); }
+.topics button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.topics .score { font: .72rem/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.topics .score.full { color: var(--good); }
+
+main { min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.t-head .eyebrow { margin: 0 0 4px; font: 600 .74rem/1 var(--f-body); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.t-head h2 { margin: 0; font: 700 clamp(1.6rem, 3.2vw, 2.2rem)/1.12 var(--f-display); letter-spacing: -.015em; text-wrap: balance; }
+.t-head .lead { margin: 8px 0 0; color: var(--muted); max-width: 62ch; }
+
+h3 { margin: 0 0 12px; font: 700 1.08rem/1.2 var(--f-display); }
+h4 { margin: 18px 0 6px; font: 600 .78rem/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.theory { max-width: 74ch; }
+.theory p, .theory li { max-width: 68ch; }
+.theory > h4:first-of-type { margin-top: 4px; }
+.f {
+  font: 1.17rem/1.6 var(--f-math); padding: 10px 16px; margin: 8px 0; background: var(--accent-soft);
+  border-radius: 8px; overflow-x: auto; white-space: nowrap;
+}
+.f .lbl { font: .8rem var(--f-body); color: var(--muted); margin-left: 14px; font-style: normal; }
+.m, .f i, .m i { font-family: var(--f-math); }
+.m { font-size: 1.06em; white-space: nowrap; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 2px; line-height: 1.15; }
+.frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px 1px; }
+.frac > span:last-child { padding: 1px 3px 0; }
+.ov { border-top: 1px solid currentColor; padding-top: 1px; }
+.keys { padding-left: 1.1em; margin: 10px 0 0; display: grid; gap: 6px; }
+.keys b { font-weight: 700; }
+
+.tbl-wrap { overflow-x: auto; margin: 8px 0; }
+table.qt { border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 320px; }
+table.qt th, table.qt td { padding: 6px 14px 6px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.qt th { font: 600 .74rem/1.2 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+table.qt td { font-family: var(--f-math); font-size: 1.04rem; }
+table.qt td.txt { font-family: var(--f-body); font-size: .95rem; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.card-head h3 { margin: 0; }
+.card-head .meta { font: .78rem/1 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Knöpfe & Felder */
+.btn {
+  border: 1px solid var(--line); background: var(--surface); padding: 9px 16px; border-radius: 8px;
+  font-weight: 600; cursor: pointer; color: var(--ink);
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--accent); }
+.btn.small { padding: 6px 11px; font-size: .88rem; }
+
+.ex-prompt { font-size: 1.04rem; max-width: 70ch; }
+.ex-prompt p { margin: 8px 0; }
+.mrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 12px 0; overflow-x: auto; font-family: var(--f-math); font-size: 1.1rem; }
+.mrow > span { display: inline-flex; align-items: center; gap: 8px; }
+.eqs { font: 1.12rem/1.8 var(--f-math); margin: 10px 0; padding-left: 14px; border-left: 2px solid var(--line); }
+.hint { color: var(--muted); font-size: .88rem; margin-top: 6px; }
+
+.ex-fields { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.field > .lab { min-width: 13em; flex: 0 1 auto; }
+.field input[type="text"], .field select, .mcell {
+  border: 1.5px solid var(--line); background: var(--paper); border-radius: 7px; padding: 7px 10px;
+  font: 1rem var(--f-mono); width: 9.5em; font-variant-numeric: tabular-nums;
+}
+.field select { font-family: var(--f-body); width: auto; }
+.field .mcell { width: 4.6em; text-align: center; padding: 6px 4px; }
+.ok { border-color: var(--good) !important; background: var(--good-soft) !important; }
+.no { border-color: var(--bad) !important; background: var(--bad-soft) !important; }
+.ex-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.feedback { margin-top: 14px; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
+.feedback.good { background: var(--good-soft); color: var(--good); }
+.feedback.bad { background: var(--bad-soft); color: var(--bad); }
+.solution { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.solution h4 { margin-top: 0; }
+.steps { padding-left: 1.3em; margin: 6px 0; display: grid; gap: 8px; }
+.steps li { padding-left: 4px; }
+.steps li::marker { font: 600 .9rem var(--f-mono); color: var(--accent); }
+
+/* Matrizen */
+.mat {
+  display: inline-grid; position: relative; padding: 4px 10px; column-gap: 14px; row-gap: 2px;
+  font: 1.05rem/1.35 var(--f-math); font-variant-numeric: tabular-nums; vertical-align: middle;
+}
+.mat::before, .mat::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 6px; border: 1.5px solid currentColor;
+}
+.mat::before { left: 0; border-right: 0; border-radius: 3px 0 0 3px; }
+.mat::after { right: 0; border-left: 0; border-radius: 0 3px 3px 0; }
+.mat .c { text-align: right; min-width: 1.4em; }
+.mat .c.sep { border-left: 1px solid var(--muted); padding-left: 10px; }
+.mat.in { column-gap: 6px; row-gap: 6px; padding: 6px 12px; }
+.gauss { display: flex; flex-direction: column; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+.gstep { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.ops { display: flex; flex-direction: column; gap: 3px; min-width: 13em; }
+.ops code { font: .82rem/1.3 var(--f-mono); color: var(--accent); }
+
+/* Werkzeuge */
+.tool-note { color: var(--muted); font-size: .92rem; margin: 6px 0 12px; max-width: 70ch; }
+.ctl-row { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; }
+.ctl { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; color: var(--muted); }
+.ctl output { font: 600 .9rem var(--f-mono); color: var(--ink); }
+.ctl select { border: 1.5px solid var(--line); background: var(--paper); border-radius: 7px; padding: 6px 8px; }
+input[type="range"] { accent-color: var(--accent); width: 200px; max-width: 100%; }
+.canvas-wrap { width: 100%; margin-top: 14px; }
+.canvas-wrap canvas { display: block; max-width: 100%; }
+.readout-line { margin: 10px 0 0; font-weight: 600; }
+.readout-line .m { font-weight: 400; }
+.lm { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.lm .canvas-wrap { margin-top: 0; }
+.lm-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.lm-sliders input[type="range"] { width: 100%; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.readout { margin: 14px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: .95rem; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--f-math); font-size: 1.05rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--sw); }
+
+/* Quiz */
+.q-text { font-size: 1.1rem; font-weight: 600; margin: 4px 0 14px; max-width: 64ch; }
+.q-opts { display: grid; gap: 8px; }
+.q-opts button {
+  text-align: left; padding: 11px 14px; border-radius: 9px; border: 1.5px solid var(--line);
+  background: var(--paper); cursor: pointer; line-height: 1.4;
+}
+.q-opts button:hover:not(:disabled) { border-color: var(--accent); }
+.q-opts button:disabled { cursor: default; }
+.q-expl { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--accent-soft); }
+
+/* Fortschritt */
+.prog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.prog-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.prog-row .nm { font-weight: 600; }
+.prog-row .val { font: .82rem var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sw, var(--accent)); }
+.stat-tiles { display: flex; flex-wrap: wrap; gap: 28px; margin: 4px 0 6px; }
+.stat-tiles div { display: flex; flex-direction: column; }
+.stat-tiles b { font: 700 1.8rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat-tiles span { color: var(--muted); font-size: .85rem; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .side { position: static; }
+  .side h2 { display: none; }
+  .topics { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 6px; }
+  .topics button { white-space: nowrap; border: 1px solid var(--line); background: var(--surface); }
+  .lm { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .field > .lab { min-width: 100%; }
+  .card { padding: 16px; }
+  .brand p { display: none; }
+  .seg { width: 100%; }
+  .seg button { flex: 1; padding: 7px 6px; font-size: .86rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .feedback, .solution, .q-expl { animation: rise .22s ease-out; }
+  @keyframes rise { from { transform: translateY(4px); opacity: .4; } to { transform: none; opacity: 1; } }
+}
+</style>
+
+<div class="app" id="app" data-subject="stat">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true" id="brand-mark">x̄</div>
+      <div>
+        <h1>Statistik &amp; LinA Trainer</h1>
+        <p>Induktive Statistik und Lineare Algebra: verstehen, ausprobieren, üben</p>
+      </div>
+    </div>
+    <div class="seg" role="group" aria-label="Bereich wählen">
+      <button type="button" id="sw-stat" data-subj="stat">Induktive Statistik</button>
+      <button type="button" id="sw-lin" data-subj="lin">Lineare Algebra</button>
+      <button type="button" id="sw-prog" data-subj="prog">Fortschritt</button>
+    </div>
+    <div class="chip" id="chip" title="Richtige Lösungen in Folge und insgesamt"></div>
+  </header>
+  <div class="layout">
+    <aside class="side">
+      <h2 id="side-title">Themen</h2>
+      <ul class="topics" id="topics"></ul>
+    </aside>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------- Hilfsfunktionen ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const uni = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const roundTo = (x, d) => Math.round(x * 10 ** d) / 10 ** d;
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function fmt(x, d = 2) {
+  if (!isFinite(x)) return "–";
+  let s = Math.abs(x).toFixed(d);
+  const neg = x < 0 && Number(s) !== 0;
+  return (neg ? "−" : "") + s.replace(".", ",");
+}
+const fmtP = p => String(+p.toFixed(4)).replace(".", ",");
+const nm = x => (x < 0 ? "−" : "") + Math.abs(x);
+const pn = x => (x < 0 ? "(" + nm(x) + ")" : nm(x));
+const pct = c => String(Math.round(c * 100)) + " %";
+const F = (a, b) => `<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const SQ = x => `√<span class="ov">${x}</span>`;
+const XB = "x̄";
+function parseNum(s) {
+  if (s == null) return NaN;
+  s = String(s).trim().replace(/−/g, "-").replace(/\s+/g, "").replace(",", ".");
+  if (s === "") return NaN;
+  if (s.includes("/")) {
+    const [a, b] = s.split("/");
+    const v = Number(a) / Number(b);
+    return isFinite(v) ? v : NaN;
+  }
+  if (s.endsWith("%")) return Number(s.slice(0, -1)) / 100;
+  return /^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(s) ? Number(s) : NaN;
+}
+
+/* ---------- Verteilungen ---------- */
+function erf(x) {
+  const s = Math.sign(x); x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y;
+}
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+const phi = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+function invPhi(p) {
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+  const pl = 0.02425; let q, r;
+  if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 1 - pl) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  q = p - 0.5; r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+function lgamma(x) {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+  x -= 1; let a = c[0]; const t = x + 7.5;
+  for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function betacf(a, b, x) {
+  const FPMIN = 1e-300; const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - qab * x / qap; if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; let h = d;
+  for (let m = 1; m <= 300; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN; c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN; d = 1 / d;
+    const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-14) break;
+  }
+  return h;
+}
+function ibeta(x, a, b) {
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+}
+function tCDF(t, df) { const p = 0.5 * ibeta(df / (df + t * t), df / 2, 0.5); return t > 0 ? 1 - p : p; }
+function tInv(p, df) { let lo = -1000, hi = 1000; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (tCDF(m, df) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+function gauss() { let u = 0; while (u === 0) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+function pval(z, alt) { return alt === "two" ? 2 * (1 - Phi(Math.abs(z))) : alt === "greater" ? 1 - Phi(z) : Phi(z); }
+
+/* ---------- Brüche & Matrizen ---------- */
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; }
+class Fr {
+  constructor(n, d = 1) { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); this.n = n / g; this.d = d / g; }
+  add(o) { return new Fr(this.n * o.d + o.n * this.d, this.d * o.d); }
+  sub(o) { return new Fr(this.n * o.d - o.n * this.d, this.d * o.d); }
+  mul(o) { return new Fr(this.n * o.n, this.d * o.d); }
+  div(o) { return new Fr(this.n * o.d, this.d * o.n); }
+  isZero() { return this.n === 0; }
+  isOne() { return this.n === 1 && this.d === 1; }
+  abs() { return new Fr(Math.abs(this.n), this.d); }
+  val() { return this.n / this.d; }
+  toString() { return (this.n < 0 ? "−" : "") + (this.d === 1 ? Math.abs(this.n) : Math.abs(this.n) + "/" + this.d); }
+}
+const fr = x => (x instanceof Fr ? x : new Fr(x));
+const pf = x => (x.n < 0 ? "(" + x + ")" : String(x));
+function cellTxt(x) { return x instanceof Fr ? String(x) : typeof x === "number" ? (Number.isInteger(x) ? nm(x) : fmt(x, 2)) : x; }
+function matHTML(M, aug = 0) {
+  const cols = M[0].length;
+  let h = `<span class="mat" style="grid-template-columns:repeat(${cols},auto)">`;
+  M.forEach(r => r.forEach((x, j) => { h += `<span class="c${aug && j === cols - aug ? " sep" : ""}">${cellTxt(x)}</span>`; }));
+  return h + "</span>";
+}
+const matMul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, a, k) => s + a * B[k][j], 0)));
+function rref(M, augCols = 0) {
+  const A = M.map(r => r.map(fr)); const rows = A.length, cols = A[0].length, lim = cols - augCols;
+  const steps = []; const pivots = []; let pr = 0;
+  for (let c = 0; c < lim && pr < rows; c++) {
+    let p = -1;
+    for (let r = pr; r < rows; r++) if (Math.abs(A[r][c].n) === 1 && A[r][c].d === 1) { p = r; break; }
+    if (p < 0) for (let r = pr; r < rows; r++) if (!A[r][c].isZero()) { p = r; break; }
+    if (p < 0) continue;
+    const ops = [];
+    if (p !== pr) { [A[p], A[pr]] = [A[pr], A[p]]; ops.push(`Z${pr + 1} ↔ Z${p + 1}`); }
+    const pv = A[pr][c];
+    if (!pv.isOne()) { A[pr] = A[pr].map(x => x.div(pv)); ops.push(`Z${pr + 1} ← Z${pr + 1} : ${pf(pv)}`); }
+    for (let r = 0; r < rows; r++) {
+      if (r === pr) continue;
+      const f = A[r][c]; if (f.isZero()) continue;
+      A[r] = A[r].map((x, j) => x.sub(f.mul(A[pr][j])));
+      ops.push(`Z${r + 1} ← Z${r + 1} ${f.n > 0 ? "−" : "+"} ${f.abs().isOne() ? "" : f.abs() + "·"}Z${pr + 1}`);
+    }
+    steps.push({ ops, M: A.map(r => r.slice()) }); pivots.push(c); pr++;
+  }
+  return { M: A, steps, rank: pivots.length, pivots };
+}
+function gaussHTML(start, steps, aug) {
+  return `<div class="gauss"><div class="gstep"><div class="ops"><code>Start</code></div>${matHTML(start, aug)}</div>` +
+    steps.map(s => `<div class="gstep"><div class="ops">${s.ops.map(o => `<code>${o}</code>`).join("")}</div>${matHTML(s.M, aug)}</div>`).join("") + "</div>";
+}
+const det2 = A => A[0][0] * A[1][1] - A[0][1] * A[1][0];
+const det3 = A => A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+const vsub = i => `<i>x</i><sub>${i}</sub>`;
+
+/* ---------- Speicher ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* kein Speicher verfügbar */ } }
+};
+let progress = store.get("mt-progress", {});
+let meta = store.get("mt-meta", { streak: 0, best: 0 });
+function record(id, ok) {
+  const p = progress[id] || (progress[id] = { t: 0, c: 0 });
+  p.t++; if (ok) p.c++;
+  meta.streak = ok ? meta.streak + 1 : 0; meta.best = Math.max(meta.best, meta.streak);
+  store.set("mt-progress", progress); store.set("mt-meta", meta);
+  updateChip(); renderTopicList();
+}
+
+/* ---------- Kontexte ---------- */
+const CTX = [
+  { t: "die Füllmenge von Saftflaschen", u: "ml", mu: 500, s: [3, 8], d: 1 },
+  { t: "die Lieferzeit eines Paketdienstes", u: "h", mu: 30, s: [4, 9], d: 1 },
+  { t: "die Körpergröße von Studierenden", u: "cm", mu: 174, s: [6, 10], d: 1 },
+  { t: "die Akkulaufzeit eines Smartphone-Modells", u: "h", mu: 20, s: [1.5, 3], d: 2 },
+  { t: "die wöchentliche Lernzeit von Studierenden", u: "h", mu: 12, s: [3, 5], d: 1 },
+  { t: "das Gewicht von Brotlaiben einer Bäckerei", u: "g", mu: 750, s: [8, 15], d: 1 }
+];
+const PCTX = ["die Mensa mindestens dreimal pro Woche besuchen", "mit ihrem Studiengang zufrieden sind", "mit dem Fahrrad zur Uni kommen", "ein Deutschlandticket besitzen", "neben dem Studium arbeiten"];
+const HYP = { two: ["=", "≠"], greater: ["≤", ">"], less: ["≥", "<"] };
+const DEC = ["H₀ ablehnen", "H₀ nicht ablehnen"];
+
+/* ---------- Aufgaben: Statistik ---------- */
+function genKI() {
+  const c = pick(CTX), conf = pick([0.9, 0.95, 0.99]), a = 1 - conf, qp = 1 - a / 2;
+  const known = Math.random() < 0.5;
+  const sig = roundTo(uni(...c.s), 1);
+  const n = known ? pick([16, 25, 36, 49, 64, 81, 100]) : rnd(6, 25);
+  const xbar = roundTo(c.mu + gauss() * sig / Math.sqrt(n), c.d);
+  const q = known ? invPhi(qp) : tInv(qp, n - 1);
+  const se = sig / Math.sqrt(n), h = q * se, tol = 0.012 + 0.006 * h;
+  const qLab = known ? `Quantil <span class="m"><i>z</i><sub>${fmtP(qp)}</sub></span>` : `Quantil <span class="m"><i>t</i><sub>${n - 1}; ${fmtP(qp)}</sub></span>`;
+  return {
+    prompt: `<p>Für ${c.t} wird eine Zufallsstichprobe vom Umfang <span class="m"><i>n</i> = ${n}</span> erhoben. Der Stichprobenmittelwert beträgt <span class="m">${XB} = ${fmt(xbar, c.d)}</span> ${c.u}.</p>
+      <p>${known ? `Die Standardabweichung der Grundgesamtheit ist bekannt: <span class="m">σ = ${fmt(sig, 1)}</span> ${c.u}.` : `Die Standardabweichung ist unbekannt. Aus der Stichprobe ergibt sich <span class="m"><i>s</i> = ${fmt(sig, 1)}</span> ${c.u}. Die Daten seien normalverteilt.`}</p>
+      <p>Bestimme ein <b>${pct(conf)}-Konfidenzintervall</b> für den Erwartungswert <span class="m">μ</span>.</p>`,
+    fields: [
+      { label: qLab, ans: q, tol: 0.01 },
+      { label: "Untere Grenze", ans: xbar - h, tol },
+      { label: "Obere Grenze", ans: xbar + h, tol }
+    ],
+    solution: `<ol class="steps">
+      <li>${known ? "σ ist bekannt, also z-Intervall." : `σ ist unbekannt, also t-Intervall mit <span class="m">${n} − 1 = ${n - 1}</span> Freiheitsgraden.`} Mit <span class="m">α = ${fmtP(a)}</span> brauchst du das ${fmtP(qp)}-Quantil: <span class="m">${known ? `<i>z</i><sub>${fmtP(qp)}</sub>` : `<i>t</i><sub>${n - 1}; ${fmtP(qp)}</sub>`} = ${fmt(q, 3)}</span>.</li>
+      <li>Standardfehler: <span class="m">${F(known ? "σ" : "<i>s</i>", SQ("<i>n</i>"))} = ${F(fmt(sig, 1), SQ(n))} = ${fmt(se, 3)}</span>.</li>
+      <li>Halbe Intervallbreite: <span class="m">${fmt(q, 3)} · ${fmt(se, 3)} = ${fmt(h, 3)}</span>.</li>
+      <li>Intervall: <span class="m">[${fmt(xbar, c.d)} − ${fmt(h, 3)} ; ${fmt(xbar, c.d)} + ${fmt(h, 3)}] = [${fmt(xbar - h, 2)} ; ${fmt(xbar + h, 2)}]</span> ${c.u}.</li>
+    </ol>`
+  };
+}
+function genKIp() {
+  const phr = pick(PCTX), conf = pick([0.9, 0.95, 0.99]), qp = 1 - (1 - conf) / 2;
+  const n = pick([200, 250, 400, 500, 800, 1000, 1200]);
+  const k = Math.round(n * uni(0.15, 0.7));
+  const ph = k / n, q = invPhi(qp), se = Math.sqrt(ph * (1 - ph) / n), h = q * se;
+  return {
+    prompt: `<p>In einer Zufallsstichprobe von <span class="m"><i>n</i> = ${n}</span> Studierenden geben <span class="m"><i>k</i> = ${k}</span> an, dass sie ${phr}.</p>
+      <p>Bestimme ein <b>${pct(conf)}-Konfidenzintervall</b> für den Anteil <span class="m"><i>p</i></span> in der Grundgesamtheit (Grenzen als Dezimalzahl, z. B. 0,312).</p>`,
+    fields: [
+      { label: `Schätzwert <span class="m"><i>p̂</i></span>`, ans: ph, tol: 0.0011 },
+      { label: "Untere Grenze", ans: ph - h, tol: 0.003 },
+      { label: "Obere Grenze", ans: ph + h, tol: 0.003 }
+    ],
+    solution: `<ol class="steps">
+      <li><span class="m"><i>p̂</i> = ${F(k, n)} = ${fmt(ph, 4)}</span>. Faustregel: <span class="m"><i>n</i><i>p̂</i>(1 − <i>p̂</i>) = ${fmt(n * ph * (1 - ph), 1)} &gt; 9</span>, Normalapproximation ist zulässig.</li>
+      <li>Quantil: <span class="m"><i>z</i><sub>${fmtP(qp)}</sub> = ${fmt(q, 3)}</span>.</li>
+      <li>Standardfehler: <span class="m">${SQ(F(`${fmt(ph, 4)} · ${fmt(1 - ph, 4)}`, n))} = ${fmt(se, 4)}</span>.</li>
+      <li>Intervall: <span class="m">${fmt(ph, 4)} ± ${fmt(q, 3)} · ${fmt(se, 4)} = [${fmt(ph - h, 4)} ; ${fmt(ph + h, 4)}]</span>.</li>
+    </ol>`
+  };
+}
+function genN() {
+  const conf = pick([0.9, 0.95, 0.99]), qp = 1 - (1 - conf) / 2, q = invPhi(qp);
+  if (Math.random() < 0.5) {
+    const c = pick(CTX), sig = roundTo(uni(...c.s), 1);
+    const E = roundTo(sig * uni(0.12, 0.45), c.d === 2 ? 2 : 1);
+    const raw = (q * sig / E) ** 2, n = Math.ceil(raw);
+    return {
+      prompt: `<p>Es soll ${c.t} geschätzt werden. Aus Vorstudien kennt man <span class="m">σ = ${fmt(sig, 1)}</span> ${c.u}.</p>
+        <p>Wie groß muss die Stichprobe mindestens sein, damit das <b>${pct(conf)}-Konfidenzintervall</b> für <span class="m">μ</span> eine halbe Breite von höchstens <span class="m"><i>E</i> = ${fmt(E, c.d === 2 ? 2 : 1)}</span> ${c.u} hat?</p>`,
+      fields: [{ label: `Mindestumfang <span class="m"><i>n</i></span>`, ans: n, check: v => Number.isInteger(v) && Math.abs(v - n) <= Math.max(1, Math.round(n * 0.002)) }],
+      solution: `<ol class="steps">
+        <li>Halbe Breite: <span class="m"><i>E</i> = <i>z</i> · ${F("σ", SQ("<i>n</i>"))}</span>. Nach n auflösen: <span class="m"><i>n</i> ≥ (${F("<i>z</i> · σ", "<i>E</i>")})²</span>.</li>
+        <li><span class="m"><i>z</i><sub>${fmtP(qp)}</sub> = ${fmt(q, 3)}</span>, also <span class="m"><i>n</i> ≥ (${F(`${fmt(q, 3)} · ${fmt(sig, 1)}`, fmt(E, c.d === 2 ? 2 : 1))})² = ${fmt(raw, 2)}</span>.</li>
+        <li>Immer aufrunden: <span class="m"><i>n</i> = ${n}</span>.</li>
+      </ol>`
+    };
+  }
+  const phr = pick(PCTX), E = pick([0.02, 0.025, 0.03, 0.04, 0.05]);
+  const prior = Math.random() < 0.5 ? null : roundTo(uni(0.15, 0.45), 2);
+  const p = prior ?? 0.5, raw = q * q * p * (1 - p) / (E * E), n = Math.ceil(raw);
+  return {
+    prompt: `<p>Eine Umfrage soll den Anteil der Studierenden schätzen, die ${phr}. ${prior ? `Eine Vorstudie ergab etwa <span class="m"><i>p̂</i> ≈ ${fmt(prior, 2)}</span>.` : "Über den Anteil ist vorab nichts bekannt."}</p>
+      <p>Wie viele Personen müssen mindestens befragt werden, damit das <b>${pct(conf)}-Konfidenzintervall</b> eine halbe Breite von höchstens <span class="m"><i>E</i> = ${fmt(E * 100, E * 100 % 1 ? 1 : 0)}</span> Prozentpunkten hat?</p>`,
+    fields: [{ label: `Mindestumfang <span class="m"><i>n</i></span>`, ans: n, check: v => Number.isInteger(v) && Math.abs(v - n) <= Math.max(1, Math.round(n * 0.003)) }],
+    solution: `<ol class="steps">
+      <li>${prior ? `Mit Vorwissen setzt du <span class="m"><i>p</i> = ${fmt(prior, 2)}</span> ein.` : `Ohne Vorwissen nimmst du den ungünstigsten Fall <span class="m"><i>p</i> = 0,5</span>, dort ist <span class="m"><i>p</i>(1 − <i>p</i>)</span> maximal.`}</li>
+      <li><span class="m"><i>n</i> ≥ ${F(`<i>z</i>² · <i>p</i>(1 − <i>p</i>)`, "<i>E</i>²")} = ${F(`${fmt(q, 3)}² · ${fmt(p, 2)} · ${fmt(1 - p, 2)}`, `${fmt(E, 3)}²`)} = ${fmt(raw, 2)}</span>.</li>
+      <li>Aufrunden: <span class="m"><i>n</i> = ${n}</span>.</li>
+    </ol>`
+  };
+}
+function altPhrase(alt, mu0, u) {
+  return alt === "two" ? `vom Wert <span class="m">μ₀ = ${mu0}</span> ${u} abweicht` : alt === "greater" ? `größer als <span class="m">μ₀ = ${mu0}</span> ${u} ist` : `kleiner als <span class="m">μ₀ = ${mu0}</span> ${u} ist`;
+}
+function genTest() {
+  for (;;) {
+    const c = pick(CTX), alt = pick(["two", "greater", "less"]), alpha = pick([0.01, 0.05, 0.1]);
+    const known = Math.random() < 0.5;
+    const n = known ? pick([16, 25, 36, 49, 64, 100]) : rnd(8, 30);
+    const sig = roundTo(uni(...c.s), 1), se = sig / Math.sqrt(n);
+    const dir = alt === "less" ? -1 : alt === "greater" ? 1 : pick([-1, 1]);
+    const xbar = roundTo(c.mu + dir * uni(-0.4, 3.2) * se, c.d);
+    const stat = (xbar - c.mu) / se;
+    const hyp = `<span class="m">H₀: μ ${HYP[alt][0]} ${c.mu}</span> gegen <span class="m">H₁: μ ${HYP[alt][1]} ${c.mu}</span>`;
+    const intro = `<p>Es wird geprüft, ob der Erwartungswert für ${c.t} ${altPhrase(alt, c.mu, c.u)}. Stichprobe: <span class="m"><i>n</i> = ${n}</span>, <span class="m">${XB} = ${fmt(xbar, c.d)}</span> ${c.u}, ${known ? `bekannte Standardabweichung <span class="m">σ = ${fmt(sig, 1)}</span>` : `Stichprobenstandardabweichung <span class="m"><i>s</i> = ${fmt(sig, 1)}</span> (Daten normalverteilt)`}.</p>
+      <p>Teste ${hyp} auf dem Niveau <span class="m">α = ${pct(alpha)}</span>.</p>`;
+    if (known) {
+      const p = pval(stat, alt);
+      if (Math.abs(p - alpha) < 0.008 || p < 1e-5) continue;
+      const rej = p < alpha;
+      const pForm = alt === "two" ? `2 · (1 − Φ(|<i>z</i>|))` : alt === "greater" ? `1 − Φ(<i>z</i>)` : `Φ(<i>z</i>)`;
+      return {
+        prompt: intro + `<p class="hint">Gauß-Test (σ bekannt). Gib z auf zwei Nachkommastellen und den p-Wert an.</p>`,
+        fields: [
+          { label: `Teststatistik <span class="m"><i>z</i></span>`, ans: stat, tol: 0.012 },
+          { label: "p-Wert", ans: p, tol: 0.005 + 0.03 * p },
+          { label: "Entscheidung", type: "select", options: DEC, ans: rej ? DEC[0] : DEC[1] }
+        ],
+        solution: `<ol class="steps">
+          <li><span class="m"><i>z</i> = ${F(`${XB} − μ₀`, `σ / ${SQ("<i>n</i>")}`)} = ${F(`${fmt(xbar, c.d)} − ${c.mu}`, `${fmt(sig, 1)} / ${SQ(n)}`)} = ${fmt(stat, 3)}</span>.</li>
+          <li>p-Wert (${alt === "two" ? "zweiseitig" : alt === "greater" ? "rechtsseitig" : "linksseitig"}): <span class="m">${pForm} = ${fmt(p, 4)}</span>.</li>
+          <li><span class="m">${fmt(p, 4)} ${rej ? "&lt;" : "≥"} ${fmtP(alpha)}</span>, also <b>${rej ? "H₀ ablehnen" : "H₀ nicht ablehnen"}</b>. ${rej ? "Die Daten sprechen signifikant für H₁." : "Die Daten reichen nicht aus, um H₁ zu belegen."}</li>
+        </ol>`
+      };
+    }
+    const qp = alt === "two" ? 1 - alpha / 2 : 1 - alpha, crit = tInv(qp, n - 1);
+    if (Math.abs(Math.abs(stat) - crit) < 0.06) continue;
+    const rej = alt === "two" ? Math.abs(stat) > crit : alt === "greater" ? stat > crit : stat < -crit;
+    const rule = alt === "two" ? `|<i>t</i>| &gt; ${fmt(crit, 3)}` : alt === "greater" ? `<i>t</i> &gt; ${fmt(crit, 3)}` : `<i>t</i> &lt; −${fmt(crit, 3)}`;
+    return {
+      prompt: intro + `<p class="hint">t-Test (σ unbekannt). Gib den kritischen Wert als positiven Betrag an.</p>`,
+      fields: [
+        { label: `Teststatistik <span class="m"><i>t</i></span>`, ans: stat, tol: 0.012 },
+        { label: `Kritischer Wert <span class="m">|<i>t</i><sub>krit</sub>|</span>`, ans: crit, check: v => Math.abs(Math.abs(v) - crit) <= 0.01 },
+        { label: "Entscheidung", type: "select", options: DEC, ans: rej ? DEC[0] : DEC[1] }
+      ],
+      solution: `<ol class="steps">
+        <li><span class="m"><i>t</i> = ${F(`${XB} − μ₀`, `<i>s</i> / ${SQ("<i>n</i>")}`)} = ${F(`${fmt(xbar, c.d)} − ${c.mu}`, `${fmt(sig, 1)} / ${SQ(n)}`)} = ${fmt(stat, 3)}</span>.</li>
+        <li>${alt === "two" ? "Zweiseitig" : "Einseitig"}, <span class="m">df = ${n - 1}</span>: <span class="m"><i>t</i><sub>${n - 1}; ${fmtP(qp)}</sub> = ${fmt(crit, 3)}</span>.</li>
+        <li>Ablehnbereich: <span class="m">${rule}</span>. Mit <span class="m"><i>t</i> = ${fmt(stat, 3)}</span> folgt <b>${rej ? "H₀ ablehnen" : "H₀ nicht ablehnen"}</b>.</li>
+      </ol>`
+    };
+  }
+}
+function genPTest() {
+  for (;;) {
+    const phr = pick(PCTX), p0 = pick([0.2, 0.25, 0.3, 0.4, 0.5, 0.6]), alt = pick(["two", "greater", "less"]);
+    const alpha = pick([0.01, 0.05, 0.1]), n = pick([200, 300, 400, 500, 800]);
+    const dir = alt === "less" ? -1 : alt === "greater" ? 1 : pick([-1, 1]);
+    const k = Math.round(n * (p0 + dir * uni(-0.01, 0.07)));
+    const ph = k / n, se = Math.sqrt(p0 * (1 - p0) / n), z = (ph - p0) / se, p = pval(z, alt);
+    if (Math.abs(p - alpha) < 0.008 || p < 1e-5) continue;
+    const rej = p < alpha;
+    const ap = alt === "two" ? "sich verändert hat" : alt === "greater" ? "gestiegen ist" : "gesunken ist";
+    return {
+      prompt: `<p>Laut einer älteren Erhebung liegt der Anteil der Studierenden, die ${phr}, bei <span class="m"><i>p</i>₀ = ${pct(p0)}</span>. In einer neuen Zufallsstichprobe vom Umfang <span class="m"><i>n</i> = ${n}</span> sind es <span class="m"><i>k</i> = ${k}</span>.</p>
+        <p>Teste auf dem Niveau <span class="m">α = ${pct(alpha)}</span>, ob der Anteil ${ap}: <span class="m">H₀: <i>p</i> ${HYP[alt][0]} ${fmtP(p0)}</span> gegen <span class="m">H₁: <i>p</i> ${HYP[alt][1]} ${fmtP(p0)}</span>.</p>`,
+      fields: [
+        { label: `Teststatistik <span class="m"><i>z</i></span>`, ans: z, tol: 0.015 },
+        { label: "p-Wert", ans: p, tol: 0.005 + 0.03 * p },
+        { label: "Entscheidung", type: "select", options: DEC, ans: rej ? DEC[0] : DEC[1] }
+      ],
+      solution: `<ol class="steps">
+        <li><span class="m"><i>p̂</i> = ${F(k, n)} = ${fmt(ph, 4)}</span>. Unter H₀ ist der Standardfehler <span class="m">${SQ(F(`${fmtP(p0)} · ${fmtP(1 - p0)}`, n))} = ${fmt(se, 4)}</span> (mit <i>p</i>₀, nicht mit <i>p̂</i>).</li>
+        <li><span class="m"><i>z</i> = ${F(`${fmt(ph, 4)} − ${fmtP(p0)}`, fmt(se, 4))} = ${fmt(z, 3)}</span>.</li>
+        <li>p-Wert: <span class="m">${fmt(p, 4)}</span>. Vergleich mit <span class="m">α = ${fmtP(alpha)}</span>: <b>${rej ? "H₀ ablehnen" : "H₀ nicht ablehnen"}</b>.</li>
+      </ol>`
+    };
+  }
+}
+function genFehler() {
+  const c = pick(CTX), alpha = pick([0.01, 0.05, 0.1]), n = pick([16, 25, 36, 49, 64]);
+  const sig = roundTo(uni(...c.s), 1), se = sig / Math.sqrt(n);
+  const mu1 = roundTo(c.mu + uni(0.8, 3.4) * se, c.d);
+  const q = invPhi(1 - alpha), crit = c.mu + q * se, zb = (crit - mu1) / se, beta = Phi(zb);
+  return {
+    prompt: `<p>Für ${c.t} wird rechtsseitig getestet: <span class="m">H₀: μ ≤ ${c.mu}</span> gegen <span class="m">H₁: μ &gt; ${c.mu}</span>. Bekannt sind <span class="m">σ = ${fmt(sig, 1)}</span> ${c.u}, <span class="m"><i>n</i> = ${n}</span> und <span class="m">α = ${pct(alpha)}</span>.</p>
+      <p>In Wahrheit gilt <span class="m">μ₁ = ${fmt(mu1, c.d)}</span> ${c.u}. Berechne den kritischen Wert für <span class="m">${XB}</span>, die Wahrscheinlichkeit <span class="m">β</span> für einen Fehler 2. Art und die Güte (Power) des Tests.</p>`,
+    fields: [
+      { label: `Kritischer Wert <span class="m"><i>c</i></span> für ${XB}`, ans: crit, tol: 0.01 + 0.006 * se },
+      { label: `Fehler 2. Art <span class="m">β</span>`, ans: beta, tol: 0.012 },
+      { label: `Güte <span class="m">1 − β</span>`, ans: 1 - beta, tol: 0.012 }
+    ],
+    solution: `<ol class="steps">
+      <li>H₀ wird abgelehnt, wenn <span class="m">${XB} &gt; <i>c</i> = μ₀ + <i>z</i><sub>${fmtP(1 - alpha)}</sub> · ${F("σ", SQ("<i>n</i>"))} = ${c.mu} + ${fmt(q, 3)} · ${fmt(se, 3)} = ${fmt(crit, 3)}</span>.</li>
+      <li>Fehler 2. Art: H₀ wird beibehalten, obwohl μ = μ₁. <span class="m">β = P(${XB} ≤ <i>c</i> | μ = μ₁) = Φ(${F(`${fmt(crit, 3)} − ${fmt(mu1, c.d)}`, fmt(se, 3))}) = Φ(${fmt(zb, 3)}) = ${fmt(beta, 4)}</span>.</li>
+      <li>Güte: <span class="m">1 − β = ${fmt(1 - beta, 4)}</span>. So oft erkennt der Test den Unterschied tatsächlich.</li>
+    </ol>`
+  };
+}
+
+/* ---------- Aufgaben: Lineare Algebra ---------- */
+function randMat(r, c, lo, hi) { return Array.from({ length: r }, () => Array.from({ length: c }, () => rnd(lo, hi))); }
+function genMatMul() {
+  const type = pick(["22", "23", "Av", "32"]);
+  let A, B;
+  if (type === "22") { A = randMat(2, 2, -3, 4); B = randMat(2, 2, -3, 4); }
+  else if (type === "23") { A = randMat(2, 3, -3, 4); B = randMat(3, 2, -3, 4); }
+  else if (type === "32") { A = randMat(3, 2, -3, 4); B = randMat(2, 2, -3, 4); }
+  else { A = randMat(3, 3, -3, 4); B = randMat(3, 1, -3, 4); }
+  const C = matMul(A, B);
+  const lines = [];
+  C.forEach((r, i) => r.forEach((v, j) => {
+    const terms = A[i].map((a, k) => `${pn(a)}·${pn(B[k][j])}`).join(" + ");
+    lines.push(`<li><span class="m"><i>c</i><sub>${i + 1}${j + 1}</sub> = ${terms} = ${nm(v)}</span></li>`);
+  }));
+  const bName = type === "Av" ? "<i>v</i>" : "<i>B</i>";
+  return {
+    prompt: `<p>Berechne das Produkt <span class="m"><i>A</i> · ${bName}</span>.</p>
+      <div class="mrow"><span><i>A</i> = ${matHTML(A)}</span><span>${bName} = ${matHTML(B)}</span></div>
+      <p class="hint"><i>A</i> ist ${A.length}×${A[0].length}, ${bName} ist ${B.length}×${B[0].length}, das Ergebnis also ${C.length}×${C[0].length}.</p>`,
+    fields: [{ label: `<span class="m"><i>A</i> · ${bName}</span> =`, type: "matrix", rows: C.length, cols: C[0].length, ans: C, tol: 1e-9 }],
+    solution: `<p>Zeile <i>i</i> von <i>A</i> mal Spalte <i>j</i> von ${bName}:</p><ol class="steps">${lines.join("")}</ol>
+      <div class="mrow"><span><i>A</i> · ${bName} = ${matHTML(C)}</span></div>`
+  };
+}
+function genDet() {
+  if (Math.random() < 0.3) {
+    const A = randMat(2, 2, -6, 7), d = det2(A);
+    return {
+      prompt: `<p>Berechne die Determinante.</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div>`,
+      fields: [{ label: `<span class="m">det <i>A</i></span>`, ans: d, tol: 1e-9 }],
+      solution: `<ol class="steps"><li><span class="m">det <i>A</i> = <i>a</i><i>d</i> − <i>b</i><i>c</i> = ${pn(A[0][0])}·${pn(A[1][1])} − ${pn(A[0][1])}·${pn(A[1][0])} = ${nm(A[0][0] * A[1][1])} − ${pn(A[0][1] * A[1][0])} = ${nm(d)}</span></li></ol>`
+    };
+  }
+  const A = randMat(3, 3, -3, 4), d = det3(A);
+  const m1 = A[1][1] * A[2][2] - A[1][2] * A[2][1], m2 = A[1][0] * A[2][2] - A[1][2] * A[2][0], m3 = A[1][0] * A[2][1] - A[1][1] * A[2][0];
+  return {
+    prompt: `<p>Berechne die Determinante (z. B. mit Sarrus oder Laplace-Entwicklung).</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div>`,
+    fields: [{ label: `<span class="m">det <i>A</i></span>`, ans: d, tol: 1e-9 }],
+    solution: `<p>Laplace-Entwicklung nach der ersten Zeile (Vorzeichen + − +):</p><ol class="steps">
+      <li><span class="m">${pn(A[0][0])} · det${matHTML([[A[1][1], A[1][2]], [A[2][1], A[2][2]]])} = ${pn(A[0][0])} · ${pn(m1)} = ${nm(A[0][0] * m1)}</span></li>
+      <li><span class="m">− ${pn(A[0][1])} · det${matHTML([[A[1][0], A[1][2]], [A[2][0], A[2][2]]])} = − ${pn(A[0][1])} · ${pn(m2)} = ${nm(-A[0][1] * m2)}</span></li>
+      <li><span class="m">+ ${pn(A[0][2])} · det${matHTML([[A[1][0], A[1][1]], [A[2][0], A[2][1]]])} = ${pn(A[0][2])} · ${pn(m3)} = ${nm(A[0][2] * m3)}</span></li>
+      <li>Summe: <span class="m">det <i>A</i> = ${nm(d)}</span>${d === 0 ? ". Die Matrix ist also nicht invertierbar." : "."}</li></ol>`
+  };
+}
+function eqHTML(row, rhs) {
+  let s = "";
+  row.forEach((a, j) => {
+    if (a === 0) return;
+    const abs = Math.abs(a), term = (abs === 1 ? "" : abs) + vsub(j + 1);
+    s += s === "" ? (a < 0 ? "−" : "") + term : ` ${a < 0 ? "−" : "+"} ${term}`;
+  });
+  return `${s} = ${nm(rhs)}`;
+}
+function genLGS() {
+  for (;;) {
+    const A = randMat(3, 3, -3, 3);
+    if (det3(A) === 0 || A.some(r => r.filter(x => x === 0).length > 1)) continue;
+    const x = [rnd(-4, 4), rnd(-4, 4), rnd(-4, 4)];
+    const b = A.map(r => r.reduce((s, a, k) => s + a * x[k], 0));
+    const aug = A.map((r, i) => [...r, b[i]]);
+    const R = rref(aug, 1);
+    if (R.M.flat().some(f => f.d > 12)) continue;
+    return {
+      prompt: `<p>Löse das lineare Gleichungssystem mit dem Gauß-Verfahren.</p>
+        <div class="eqs">${A.map((r, i) => eqHTML(r, b[i])).join("<br>")}</div>`,
+      fields: [1, 2, 3].map(i => ({ label: `<span class="m">${vsub(i)}</span>`, ans: x[i - 1], tol: 1e-6 })),
+      solution: `<p>Erweiterte Koeffizientenmatrix <span class="m">(<i>A</i> | <i>b</i>)</span> schrittweise auf reduzierte Stufenform bringen (Z = Zeile):</p>
+        ${gaussHTML(aug, R.steps, 1)}
+        <p>Aus der letzten Spalte liest du ab: <span class="m">${vsub(1)} = ${nm(x[0])}, ${vsub(2)} = ${nm(x[1])}, ${vsub(3)} = ${nm(x[2])}</span>. Probe: Einsetzen in alle drei Gleichungen.</p>`
+    };
+  }
+}
+function genInverse() {
+  for (;;) {
+    const A = randMat(2, 2, -4, 5), d = det2(A);
+    if (d === 0 || Math.abs(d) > 6) continue;
+    const [[a, b], [c, e]] = A;
+    const inv = [[new Fr(e, d), new Fr(-b, d)], [new Fr(-c, d), new Fr(a, d)]];
+    return {
+      prompt: `<p>Bestimme die Inverse. Brüche wie <code>-3/2</code> sind erlaubt.</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div>`,
+      fields: [{ label: `<span class="m"><i>A</i><sup>−1</sup></span> =`, type: "matrix", rows: 2, cols: 2, ans: inv.map(r => r.map(f => f.val())), tol: 0.006 }],
+      solution: `<ol class="steps">
+        <li><span class="m">det <i>A</i> = ${pn(a)}·${pn(e)} − ${pn(b)}·${pn(c)} = ${nm(d)} ≠ 0</span>, also ist <i>A</i> invertierbar.</li>
+        <li>Diagonale tauschen, Nebendiagonale negieren, durch die Determinante teilen:
+          <div class="mrow"><span><i>A</i><sup>−1</sup> = ${F(1, nm(d))} ${matHTML([[e, -b], [-c, a]])} = ${matHTML(inv)}</span></div></li>
+        <li>Probe: <span class="m"><i>A</i> · <i>A</i><sup>−1</sup> = <i>E</i></span>.</li></ol>`
+    };
+  }
+}
+function genRang() {
+  for (;;) {
+    const r = rnd(1, 3), base = [];
+    for (let i = 0; i < r; i++) base.push(Array.from({ length: 4 }, () => rnd(-3, 3)));
+    const rows = base.map(x => x.slice());
+    while (rows.length < 3) {
+      const co = base.map(() => rnd(-2, 2));
+      if (co.every(x => x === 0)) continue;
+      rows.push(base[0].map((_, j) => base.reduce((s, bv, i) => s + co[i] * bv[j], 0)));
+    }
+    shuffle(rows);
+    if (rows.some(rw => rw.every(x => x === 0)) || rows.flat().some(x => Math.abs(x) > 9)) continue;
+    const R = rref(rows);
+    if (R.rank !== r || R.M.flat().some(f => f.d > 12)) continue;
+    return {
+      prompt: `<p>Bestimme den Rang der Matrix.</p><div class="mrow"><span><i>A</i> = ${matHTML(rows)}</span></div>`,
+      fields: [{ label: `<span class="m">rang <i>A</i></span>`, ans: r, tol: 1e-9 }],
+      solution: `<p>Mit Zeilenumformungen auf Stufenform bringen:</p>${gaussHTML(rows, R.steps, 0)}
+        <p>Es bleiben <b>${r}</b> Zeilen ungleich null, also <span class="m">rang <i>A</i> = ${r}</span>. ${r < 3 ? `Die Zeilen sind linear abhängig: ${3 - r} davon lassen sich aus den anderen kombinieren.` : "Die drei Zeilen sind linear unabhängig."}</p>`
+    };
+  }
+}
+function genVek() {
+  for (;;) {
+    const u = [rnd(-4, 5), rnd(-4, 5), rnd(-4, 5)];
+    let v;
+    if (Math.random() < 0.3) { const w = [rnd(-2, 2), rnd(-2, 2), rnd(-2, 2)]; v = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]; }
+    else v = [rnd(-4, 5), rnd(-4, 5), rnd(-4, 5)];
+    if (u.every(x => x === 0) || v.every(x => x === 0) || v.some(x => Math.abs(x) > 12)) continue;
+    const dot = u.reduce((s, x, i) => s + x * v[i], 0);
+    const nu2 = u.reduce((s, x) => s + x * x, 0), nv2 = v.reduce((s, x) => s + x * x, 0);
+    const cos = dot / Math.sqrt(nu2 * nv2);
+    if (Math.abs(cos) > 0.999) continue;
+    const ang = Math.acos(cos) * 180 / Math.PI;
+    const col = x => matHTML(x.map(e => [e]));
+    return {
+      prompt: `<p>Gegeben sind die Vektoren</p><div class="mrow"><span><i>u</i> = ${col(u)}</span><span><i>v</i> = ${col(v)}</span></div>
+        <p>Berechne das Skalarprodukt und den Winkel zwischen <i>u</i> und <i>v</i> in Grad.</p>`,
+      fields: [
+        { label: `<span class="m"><i>u</i> · <i>v</i></span>`, ans: dot, tol: 1e-9 },
+        { label: "Winkel φ in Grad", ans: ang, tol: 0.15 }
+      ],
+      solution: `<ol class="steps">
+        <li><span class="m"><i>u</i> · <i>v</i> = ${u.map((x, i) => `${pn(x)}·${pn(v[i])}`).join(" + ")} = ${nm(dot)}</span>${dot === 0 ? ". Das Skalarprodukt ist 0: <i>u</i> und <i>v</i> stehen senkrecht aufeinander." : "."}</li>
+        <li><span class="m">|<i>u</i>| = ${SQ(nu2)} ≈ ${fmt(Math.sqrt(nu2), 3)}</span>, <span class="m">|<i>v</i>| = ${SQ(nv2)} ≈ ${fmt(Math.sqrt(nv2), 3)}</span>.</li>
+        <li><span class="m">cos φ = ${F("<i>u</i> · <i>v</i>", "|<i>u</i>| · |<i>v</i>|")} = ${F(nm(dot), `${fmt(Math.sqrt(nu2), 3)} · ${fmt(Math.sqrt(nv2), 3)}`)} = ${fmt(cos, 4)}</span>, also <span class="m">φ ≈ ${fmt(ang, 2)}°</span>.</li></ol>`
+    };
+  }
+}
+function genAbb() {
+  for (;;) {
+    const A = randMat(2, 2, -3, 3), v = [rnd(-3, 4), rnd(-3, 4)];
+    if (det2(A) === 0 || v.every(x => x === 0)) continue;
+    const Av = matMul(A, v.map(x => [x])), d = det2(A);
+    return {
+      prompt: `<p>Die lineare Abbildung <span class="m"><i>f</i>(<i>x</i>) = <i>A</i><i>x</i></span> ist gegeben durch</p>
+        <div class="mrow"><span><i>A</i> = ${matHTML(A)}</span><span><i>v</i> = ${matHTML(v.map(x => [x]))}</span></div>
+        <p>Berechne das Bild <span class="m"><i>f</i>(<i>v</i>)</span> und den Flächeninhalt des Bildes des Einheitsquadrats. Wird die Orientierung umgekehrt?</p>`,
+      fields: [
+        { label: `<span class="m"><i>A</i><i>v</i></span> =`, type: "matrix", rows: 2, cols: 1, ans: Av, tol: 1e-9 },
+        { label: "Fläche des Bildquadrats", ans: Math.abs(d), tol: 1e-9 },
+        { label: "Orientierung", type: "select", options: ["bleibt erhalten", "wird umgekehrt"], ans: d > 0 ? "bleibt erhalten" : "wird umgekehrt" }
+      ],
+      solution: `<ol class="steps">
+        <li>Die Spalten von <i>A</i> sind die Bilder der Einheitsvektoren. Darum ist <span class="m"><i>A</i><i>v</i> = ${pn(v[0])} · ${matHTML([[A[0][0]], [A[1][0]]])} + ${pn(v[1])} · ${matHTML([[A[0][1]], [A[1][1]]])} = ${matHTML(Av)}</span>.</li>
+        <li><span class="m">det <i>A</i> = ${pn(A[0][0])}·${pn(A[1][1])} − ${pn(A[0][1])}·${pn(A[1][0])} = ${nm(d)}</span>. Das Einheitsquadrat (Fläche 1) wird auf ein Parallelogramm der Fläche <span class="m">|det <i>A</i>| = ${Math.abs(d)}</span> abgebildet.</li>
+        <li>${d > 0 ? "det > 0: Die Orientierung bleibt erhalten." : "det < 0: Die Abbildung enthält eine Spiegelung, die Orientierung wird umgekehrt."}</li></ol>`
+    };
+  }
+}
+const PS = [[[1, 1], [0, 1]], [[1, 0], [1, 1]], [[2, 1], [1, 1]], [[1, 1], [1, 2]], [[1, 2], [1, 1]], [[1, -1], [1, 0]], [[3, 1], [2, 1]], [[1, 1], [-1, 0]], [[2, 3], [1, 2]], [[1, 0], [2, 1]], [[1, -1], [0, 1]], [[1, 1], [1, 0]]];
+function genEigen() {
+  for (;;) {
+    const P = pick(PS), l1 = rnd(-3, 5); let l2 = rnd(-3, 5);
+    if (l1 === l2) continue;
+    const dP = det2(P), Pi = [[P[1][1] * dP, -P[0][1] * dP], [-P[1][0] * dP, P[0][0] * dP]];
+    const A = matMul(matMul(P, [[l1, 0], [0, l2]]), Pi);
+    if (A.flat().some(x => Math.abs(x) > 12)) continue;
+    const lo = Math.min(l1, l2), hi = Math.max(l1, l2);
+    const vec = lo === l1 ? [P[0][0], P[1][0]] : [P[0][1], P[1][1]];
+    const tr = A[0][0] + A[1][1], dt = det2(A), D = tr * tr - 4 * dt;
+    const poly = `λ² ${tr === 0 ? "" : (tr > 0 ? "− " : "+ ") + (Math.abs(tr) === 1 ? "" : Math.abs(tr)) + "λ "}${dt === 0 ? "" : (dt > 0 ? "+ " : "− ") + Math.abs(dt) + " "}= 0`;
+    const M = [[A[0][0] - lo, A[0][1]], [A[1][0], A[1][1] - lo]];
+    return {
+      prompt: `<p>Bestimme die Eigenwerte der Matrix und einen Eigenvektor zum kleineren Eigenwert.</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div>`,
+      fields: [
+        { label: `kleinerer Eigenwert <span class="m">λ₁</span>`, ans: lo, tol: 1e-6 },
+        { label: `größerer Eigenwert <span class="m">λ₂</span>`, ans: hi, tol: 1e-6 },
+        { label: `Eigenvektor zu <span class="m">λ₁</span>`, type: "matrix", rows: 2, cols: 1, ans: vec.map(x => [x]),
+          check: vals => { const [x, y] = vals.flat(); return !(Math.abs(x) < 1e-9 && Math.abs(y) < 1e-9) && Math.abs(x * vec[1] - y * vec[0]) < 1e-6; } }
+      ],
+      solution: `<ol class="steps">
+        <li>Charakteristisches Polynom: <span class="m">det(<i>A</i> − λ<i>E</i>) = λ² − Spur(<i>A</i>)·λ + det <i>A</i></span> mit <span class="m">Spur = ${nm(tr)}</span>, <span class="m">det = ${nm(dt)}</span>:
+          <div class="f">${poly}</div></li>
+        <li><span class="m">λ = ${F(`${nm(tr)} ± ${SQ(`${pn(tr)}² − 4·${pn(dt)}`)}`, 2)} = ${F(`${nm(tr)} ± ${SQ(D)}`, 2)} = ${F(`${nm(tr)} ± ${Math.sqrt(D)}`, 2)}</span>, also <span class="m">λ₁ = ${nm(lo)}</span>, <span class="m">λ₂ = ${nm(hi)}</span>.</li>
+        <li>Eigenvektor: Kern von <span class="m"><i>A</i> − (${nm(lo)})<i>E</i> = ${matHTML(M)}</span>. Eine Lösung ist <span class="m"><i>v</i> = ${matHTML(vec.map(x => [x]))}</span>, jedes Vielfache ≠ 0 ebenfalls.</li>
+        <li>Probe: <span class="m"><i>A</i><i>v</i> = ${matHTML(matMul(A, vec.map(x => [x])))} = ${nm(lo)} · <i>v</i></span>. Kontrolle: <span class="m">λ₁ + λ₂ = ${nm(lo + hi)} = Spur</span>, <span class="m">λ₁ · λ₂ = ${nm(lo * hi)} = det</span>.</li></ol>`
+    };
+  }
+}
+
+/* ---------- Verständnisfragen ---------- */
+const QUIZ_STAT = [
+  ["Was bedeutet ein 95%-Konfidenzintervall [12,1 ; 14,3] für μ?", ["Bei vielen Wiederholungen des Verfahrens überdecken etwa 95 % der berechneten Intervalle das wahre μ.", "μ liegt mit 95 % Wahrscheinlichkeit zwischen 12,1 und 14,3.", "95 % der Beobachtungen liegen zwischen 12,1 und 14,3.", "Der Stichprobenmittelwert liegt mit 95 % Wahrscheinlichkeit im Intervall."], "μ ist eine feste Zahl, das Intervall ist zufällig. Die 95 % beschreiben die Trefferquote des Verfahrens, nicht eine Wahrscheinlichkeit für dieses eine Intervall."],
+  ["Was ist ein Fehler 1. Art?", ["H₀ wird abgelehnt, obwohl H₀ wahr ist.", "H₀ wird beibehalten, obwohl H₁ wahr ist.", "Die Stichprobe ist zu klein.", "Der p-Wert ist größer als α."], "Die Wahrscheinlichkeit für einen Fehler 1. Art wird durch α begrenzt."],
+  ["Der p-Wert ist …", ["die Wahrscheinlichkeit, unter H₀ ein mindestens so extremes Ergebnis wie das beobachtete zu erhalten.", "die Wahrscheinlichkeit, dass H₀ wahr ist.", "die Wahrscheinlichkeit, dass H₁ wahr ist.", "das Signifikanzniveau des Tests."], "Der p-Wert wird unter der Annahme berechnet, dass H₀ gilt. Er sagt nichts direkt über die Wahrscheinlichkeit von H₀ aus."],
+  ["Wie ändert sich die Breite eines Konfidenzintervalls für μ, wenn n vervierfacht wird (sonst alles gleich)?", ["Sie halbiert sich.", "Sie viertelt sich.", "Sie verdoppelt sich.", "Sie bleibt gleich."], "Die Breite ist proportional zu 1/√n. Aus 4n wird √4 = 2, also halbe Breite."],
+  ["Wann verwendet man das t-Quantil statt des z-Quantils?", ["Wenn σ unbekannt ist und durch s geschätzt wird (Daten normalverteilt).", "Wenn die Stichprobe sehr groß ist.", "Wenn ein Anteil geschätzt wird.", "Wenn der Test einseitig ist."], "Die zusätzliche Unsicherheit durch die Schätzung von σ macht die t-Verteilung breiter. Für große n nähert sie sich der Normalverteilung."],
+  ["Man senkt α von 5 % auf 1 % (n bleibt gleich). Was passiert mit β?", ["β wird größer.", "β wird kleiner.", "β bleibt gleich.", "β wird 0."], "Ein strengerer Test lehnt seltener ab, auch wenn H₁ stimmt. Beide Fehler senkt man gleichzeitig nur über ein größeres n."],
+  ["Die Güte (Power) eines Tests ist …", ["1 − β, die Wahrscheinlichkeit, H₀ abzulehnen, wenn H₁ gilt.", "1 − α.", "die Wahrscheinlichkeit, dass H₀ stimmt.", "der Kehrwert des p-Werts."], "Hohe Güte bedeutet: Ein vorhandener Effekt wird mit großer Wahrscheinlichkeit entdeckt."],
+  ["Ein zweiseitiger Test mit α = 5 % lehnt H₀: μ = μ₀ genau dann ab, wenn …", ["μ₀ nicht im 95%-Konfidenzintervall liegt.", "μ₀ im 95%-Konfidenzintervall liegt.", "x̄ im 95%-Konfidenzintervall liegt.", "das Intervall breiter als α ist."], "Konfidenzintervall und zweiseitiger Test sind zwei Sichtweisen auf dieselbe Rechnung."],
+  ["Wie viele Freiheitsgrade hat der Einstichproben-t-Test mit n = 20?", ["19", "20", "21", "18"], "df = n − 1, weil ein Freiheitsgrad für die Schätzung von x̄ verbraucht wird."],
+  ["Was besagt der zentrale Grenzwertsatz für x̄?", ["Für großes n ist x̄ ungefähr normalverteilt, egal wie die Einzelwerte verteilt sind (endliche Varianz).", "Die Einzelwerte werden für großes n normalverteilt.", "x̄ ist immer exakt normalverteilt.", "Die Varianz von x̄ wächst mit n."], "Deshalb funktionieren z-Intervalle und z-Tests auch bei nicht normalverteilten Daten, sofern n groß genug ist."],
+  ["Ein Schätzer θ̂ heißt erwartungstreu, wenn …", ["E(θ̂) = θ gilt.", "Var(θ̂) = 0 gilt.", "θ̂ immer gleich θ ist.", "θ̂ normalverteilt ist."], "Im Mittel trifft der Schätzer den wahren Wert. Beispiel: s² mit Nenner n − 1 ist erwartungstreu für σ²."],
+  ["Der Standardfehler von x̄ ist …", ["σ / √n", "σ / n", "σ² / n", "√σ / n"], "Var(x̄) = σ²/n, die Wurzel davon ist der Standardfehler σ/√n."],
+  ["„H₀ wird nicht abgelehnt“ bedeutet …", ["Die Daten liefern keinen ausreichenden Beleg gegen H₀.", "H₀ ist bewiesen.", "H₁ ist widerlegt.", "Ein Fehler 1. Art liegt vor."], "Ein Test kann H₀ nur ablehnen oder beibehalten. Beibehalten ist kein Beweis, oft fehlt einfach Power."]
+];
+const QUIZ_LIN = [
+  ["A ist 3×2, B ist 2×4. Welches Format hat AB?", ["3×4", "2×2", "4×3", "Das Produkt ist nicht definiert."], "Innere Dimensionen (2 und 2) müssen passen, das Ergebnis hat die äußeren: 3×4."],
+  ["Welche Aussage über Determinanten gilt immer?", ["det(AB) = det(A) · det(B)", "det(A + B) = det(A) + det(B)", "det(2A) = 2 · det(A) für 3×3-Matrizen", "det(A) = 0 für jede symmetrische Matrix"], "Die Determinante ist multiplikativ, aber nicht additiv. Für 3×3 gilt det(2A) = 2³ · det(A) = 8 · det(A)."],
+  ["Eine quadratische Matrix A ist genau dann invertierbar, wenn …", ["det(A) ≠ 0", "alle Einträge ≠ 0 sind", "A symmetrisch ist", "Spur(A) ≠ 0"], "Äquivalent dazu: voller Rang, Kern = {0}, 0 ist kein Eigenwert."],
+  ["Das LGS Ax = b mit A (3×3) hat rang(A) = 2 und rang(A|b) = 2. Wie viele Lösungen gibt es?", ["Unendlich viele (eine freie Variable)", "Genau eine", "Keine", "Genau zwei"], "rang(A) = rang(A|b): lösbar. 3 − 2 = 1 freier Parameter."],
+  ["Was sind die Eigenwerte einer oberen Dreiecksmatrix?", ["Die Diagonalelemente", "Die Einträge der ersten Zeile", "Immer 0 und 1", "Die Zeilensummen"], "det(A − λE) ist bei Dreiecksmatrizen das Produkt der Diagonale (aᵢᵢ − λ)."],
+  ["Die Summe der Eigenwerte einer Matrix ist gleich …", ["der Spur", "der Determinante", "dem Rang", "der größten Zeilensumme"], "Summe der Eigenwerte = Spur, Produkt der Eigenwerte = Determinante."],
+  ["Für Matrizen gilt (AB)ᵀ = …", ["BᵀAᵀ", "AᵀBᵀ", "AB", "BA"], "Beim Transponieren dreht sich die Reihenfolge um, genau wie beim Invertieren: (AB)⁻¹ = B⁻¹A⁻¹."],
+  ["Zwei Vektoren u, v ≠ 0 sind orthogonal genau dann, wenn …", ["u · v = 0", "|u| = |v|", "u = −v", "u × v = 0"], "cos φ = u·v / (|u||v|) = 0 heißt φ = 90°. Ein Kreuzprodukt von 0 bedeutet dagegen parallel."],
+  ["A ist eine 4×6-Matrix mit Rang 3. Welche Dimension hat der Kern?", ["3", "1", "2", "6"], "Dimensionsformel: dim Kern = Anzahl der Spalten − Rang = 6 − 3 = 3."],
+  ["Ist die Matrixmultiplikation kommutativ?", ["Nein, im Allgemeinen gilt AB ≠ BA.", "Ja, immer.", "Nur für 2×2-Matrizen.", "Nur, wenn beide Determinanten 1 sind."], "Beispiel: Erst drehen, dann spiegeln ergibt etwas anderes als erst spiegeln, dann drehen."],
+  ["Welche Determinante hat eine Drehmatrix im ℝ²?", ["1", "0", "−1", "Das hängt vom Winkel ab."], "cos²α + sin²α = 1. Drehungen erhalten Fläche und Orientierung."],
+  ["Was bewirkt das Vertauschen zweier Zeilen bei der Determinante?", ["Das Vorzeichen ändert sich.", "Nichts.", "Sie wird 0.", "Sie verdoppelt sich."], "Das Addieren eines Vielfachen einer Zeile zu einer anderen lässt die Determinante dagegen unverändert."],
+  ["Die Vektoren v₁, v₂, v₃ ∈ ℝ³ sind linear unabhängig genau dann, wenn …", ["die Matrix mit diesen Spalten Rang 3 hat.", "keiner davon der Nullvektor ist.", "sie paarweise verschieden sind.", "ihre Summe der Nullvektor ist."], "Vollständiger Rang bedeutet: Nur die triviale Kombination ergibt den Nullvektor. Gleichwertig: det ≠ 0."]
+];
+
+/* ---------- Theorie ---------- */
+const TH = {};
+TH.ki = `
+  <p>Ein Konfidenzintervall ist ein aus der Stichprobe berechneter Bereich, der den unbekannten Erwartungswert <span class="m">μ</span> mit vorgegebener Sicherheit <span class="m">1 − α</span> überdeckt.</p>
+  <h4>σ bekannt</h4>
+  <div class="f">${XB} ± <i>z</i><sub>1−α/2</sub> · ${F("σ", SQ("<i>n</i>"))}</div>
+  <h4>σ unbekannt, Daten normalverteilt</h4>
+  <div class="f">${XB} ± <i>t</i><sub><i>n</i>−1; 1−α/2</sub> · ${F("<i>s</i>", SQ("<i>n</i>"))}</div>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th>Niveau 1 − α</th><th>α</th><th>Quantil</th><th><i>z</i>-Wert</th></tr></thead><tbody>
+    <tr><td>90 %</td><td>0,10</td><td><i>z</i><sub>0,95</sub></td><td>1,645</td></tr>
+    <tr><td>95 %</td><td>0,05</td><td><i>z</i><sub>0,975</sub></td><td>1,960</td></tr>
+    <tr><td>99 %</td><td>0,01</td><td><i>z</i><sub>0,995</sub></td><td>2,576</td></tr></tbody></table></div>
+  <ul class="keys">
+    <li><b>Richtig gedeutet:</b> Wiederholt man das Verfahren sehr oft, überdecken etwa 95 % der Intervalle das wahre μ. Das zeigt die Simulation unten.</li>
+    <li><b>Breite</b> = 2 · Quantil · σ/√n. Viermal so viele Beobachtungen halbieren die Breite, ein höheres Niveau macht sie breiter.</li>
+    <li>Das t-Quantil ist größer als das z-Quantil, weil auch <i>s</i> geschätzt ist. Für großes n nähern sich beide an.</li>
+  </ul>`;
+TH.kip = `
+  <p>Für einen Anteil <span class="m"><i>p</i></span> (z. B. Zustimmung in einer Umfrage) schätzt man <span class="m"><i>p̂</i> = <i>k</i>/<i>n</i></span>. Für großes n ist <i>p̂</i> näherungsweise normalverteilt.</p>
+  <div class="f"><i>p̂</i> ± <i>z</i><sub>1−α/2</sub> · ${SQ(F("<i>p̂</i>(1 − <i>p̂</i>)", "<i>n</i>"))}</div>
+  <ul class="keys">
+    <li><b>Faustregel:</b> Die Näherung ist brauchbar, wenn <span class="m"><i>n</i><i>p̂</i>(1 − <i>p̂</i>) &gt; 9</span>.</li>
+    <li>Die Breite ist bei <span class="m"><i>p̂</i> = 0,5</span> am größten.</li>
+    <li>Grenzen als Dezimalzahl angeben, also 0,312 statt 31,2 %.</li>
+  </ul>`;
+TH.n = `
+  <p>Vor einer Erhebung legt man fest, wie genau das Ergebnis sein soll: Die halbe Intervallbreite <span class="m"><i>E</i></span> (Fehlermarge) darf einen Wert nicht überschreiten. Daraus folgt der nötige Stichprobenumfang.</p>
+  <h4>Für einen Mittelwert</h4>
+  <div class="f"><i>n</i> ≥ (${F("<i>z</i><sub>1−α/2</sub> · σ", "<i>E</i>")})²</div>
+  <h4>Für einen Anteil</h4>
+  <div class="f"><i>n</i> ≥ ${F("<i>z</i>²<sub>1−α/2</sub> · <i>p</i>(1 − <i>p</i>)", "<i>E</i>²")}<span class="lbl">ohne Vorwissen p = 0,5</span></div>
+  <ul class="keys">
+    <li><b>Immer aufrunden</b>, auch bei 384,01. Sonst wird die Genauigkeit knapp verfehlt.</li>
+    <li>Halbe Fehlermarge bedeutet vierfachen Stichprobenumfang.</li>
+  </ul>`;
+TH.test = `
+  <ol class="steps">
+    <li>Hypothesen festlegen: <span class="m">H₀</span> (Status quo) und <span class="m">H₁</span> (was belegt werden soll).</li>
+    <li>Signifikanzniveau <span class="m">α</span> wählen, typisch 5 %.</li>
+    <li>Teststatistik aus der Stichprobe berechnen.</li>
+    <li>Mit dem kritischen Wert oder über den p-Wert vergleichen.</li>
+    <li>Entscheiden und im Sachzusammenhang formulieren.</li>
+  </ol>
+  <div class="f"><i>z</i> = ${F(`${XB} − μ₀`, `σ / ${SQ("<i>n</i>")}`)}<span class="lbl">Gauß-Test, σ bekannt</span></div>
+  <div class="f"><i>t</i> = ${F(`${XB} − μ₀`, `<i>s</i> / ${SQ("<i>n</i>")}`)}<span class="lbl">t-Test, df = n − 1</span></div>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th>H₁</th><th>H₀ ablehnen, wenn</th><th>p-Wert</th></tr></thead><tbody>
+    <tr><td>μ ≠ μ₀</td><td>|<i>z</i>| &gt; <i>z</i><sub>1−α/2</sub></td><td>2 · (1 − Φ(|<i>z</i>|))</td></tr>
+    <tr><td>μ &gt; μ₀</td><td><i>z</i> &gt; <i>z</i><sub>1−α</sub></td><td>1 − Φ(<i>z</i>)</td></tr>
+    <tr><td>μ &lt; μ₀</td><td><i>z</i> &lt; −<i>z</i><sub>1−α</sub></td><td>Φ(<i>z</i>)</td></tr></tbody></table></div>
+  <ul class="keys">
+    <li><b>p-Wert:</b> Wahrscheinlichkeit, unter H₀ ein mindestens so extremes Ergebnis zu sehen. Ist <span class="m"><i>p</i> &lt; α</span>, wird H₀ abgelehnt.</li>
+    <li>„H₀ nicht ablehnen“ heißt nicht, dass H₀ bewiesen ist.</li>
+  </ul>`;
+TH.ptest = `
+  <p>Geprüft wird, ob ein Anteil von einem Referenzwert <span class="m"><i>p</i>₀</span> abweicht. Unter H₀ kennt man die Streuung exakt, deshalb steht im Nenner <i>p</i>₀ und nicht <i>p̂</i>.</p>
+  <div class="f"><i>z</i> = ${F("<i>p̂</i> − <i>p</i>₀", SQ(F("<i>p</i>₀(1 − <i>p</i>₀)", "<i>n</i>")))}</div>
+  <ul class="keys">
+    <li>Ablehnbereiche und p-Werte wie beim Gauß-Test (siehe „Hypothesentests“).</li>
+    <li>Voraussetzung: <span class="m"><i>n</i><i>p</i>₀(1 − <i>p</i>₀) &gt; 9</span>, sonst exakter Binomialtest.</li>
+  </ul>`;
+TH.fehler = `
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th></th><th>H₀ ist wahr</th><th>H₁ ist wahr</th></tr></thead><tbody>
+    <tr><td class="txt"><b>H₀ abgelehnt</b></td><td class="txt">Fehler 1. Art (Wahrsch. α)</td><td class="txt">richtig (Güte 1 − β)</td></tr>
+    <tr><td class="txt"><b>H₀ beibehalten</b></td><td class="txt">richtig (1 − α)</td><td class="txt">Fehler 2. Art (Wahrsch. β)</td></tr></tbody></table></div>
+  <h4>Rechtsseitiger Gauß-Test, wahrer Wert μ₁</h4>
+  <div class="f"><i>c</i> = μ₀ + <i>z</i><sub>1−α</sub> · ${F("σ", SQ("<i>n</i>"))} &nbsp;&nbsp; β = Φ(${F("<i>c</i> − μ₁", `σ / ${SQ("<i>n</i>")}`)})</div>
+  <ul class="keys">
+    <li><b>n größer</b>: Beide Kurven werden schmaler, β sinkt.</li>
+    <li><b>α kleiner</b>: Der kritische Wert wandert nach rechts, β steigt.</li>
+    <li><b>Abstand μ₁ − μ₀ größer</b>: Der Effekt ist leichter zu entdecken, β sinkt.</li>
+  </ul>`;
+TH.mm = `
+  <p>Das Produkt <span class="m"><i>A</i><i>B</i></span> existiert nur, wenn <i>A</i> so viele Spalten hat wie <i>B</i> Zeilen: <span class="m">(<i>m</i>×<i>n</i>) · (<i>n</i>×<i>p</i>) = (<i>m</i>×<i>p</i>)</span>.</p>
+  <div class="f"><i>c</i><sub><i>ij</i></sub> = Σ<sub><i>k</i>=1</sub><sup><i>n</i></sup> <i>a</i><sub><i>ik</i></sub> · <i>b</i><sub><i>kj</i></sub><span class="lbl">Zeile i von A mal Spalte j von B</span></div>
+  <ul class="keys">
+    <li><b>Nicht kommutativ:</b> Im Allgemeinen ist <span class="m"><i>A</i><i>B</i> ≠ <i>B</i><i>A</i></span>.</li>
+    <li>Assoziativ und distributiv: <span class="m">(<i>A</i><i>B</i>)<i>C</i> = <i>A</i>(<i>B</i><i>C</i>)</span>, <span class="m"><i>A</i>(<i>B</i> + <i>C</i>) = <i>A</i><i>B</i> + <i>A</i><i>C</i></span>.</li>
+    <li>Transponieren dreht die Reihenfolge: <span class="m">(<i>A</i><i>B</i>)<sup>T</sup> = <i>B</i><sup>T</sup><i>A</i><sup>T</sup></span>.</li>
+  </ul>`;
+TH.det = `
+  <h4>2×2</h4>
+  <div class="f">det${matHTML([["<i>a</i>", "<i>b</i>"], ["<i>c</i>", "<i>d</i>"]])} = <i>a</i><i>d</i> − <i>b</i><i>c</i></div>
+  <h4>3×3: Laplace nach der ersten Zeile</h4>
+  <div class="f">det <i>A</i> = <i>a</i><sub>11</sub>·det <i>A</i><sub>11</sub> − <i>a</i><sub>12</sub>·det <i>A</i><sub>12</sub> + <i>a</i><sub>13</sub>·det <i>A</i><sub>13</sub></div>
+  <p><i>A</i><sub><i>ij</i></sub> entsteht durch Streichen von Zeile <i>i</i> und Spalte <i>j</i>. Alternativ Sarrus: drei Diagonalprodukte nach rechts unten addieren, drei nach links unten abziehen.</p>
+  <ul class="keys">
+    <li><span class="m">det(<i>A</i><i>B</i>) = det <i>A</i> · det <i>B</i></span>, <span class="m">det <i>A</i><sup>T</sup> = det <i>A</i></span>, <span class="m">det(λ<i>A</i>) = λ<sup><i>n</i></sup> det <i>A</i></span>.</li>
+    <li>Zeilentausch kehrt das Vorzeichen um. Ein Vielfaches einer Zeile addieren ändert nichts.</li>
+    <li>Dreiecksmatrix: Produkt der Diagonale. <b>det A ≠ 0 genau dann, wenn A invertierbar ist.</b></li>
+  </ul>`;
+TH.lgs = `
+  <p>Ein LGS <span class="m"><i>A</i><i>x</i> = <i>b</i></span> löst man, indem man die erweiterte Matrix <span class="m">(<i>A</i> | <i>b</i>)</span> mit elementaren Zeilenumformungen auf Stufenform bringt. Die Lösungsmenge bleibt dabei gleich.</p>
+  <ol class="steps">
+    <li>Zwei Zeilen vertauschen.</li>
+    <li>Eine Zeile mit einer Zahl ≠ 0 multiplizieren.</li>
+    <li>Ein Vielfaches einer Zeile zu einer anderen addieren.</li>
+  </ol>
+  <h4>Lösbarkeit (n Unbekannte)</h4>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th>Bedingung</th><th>Lösungen</th></tr></thead><tbody>
+    <tr><td>rang <i>A</i> = rang(<i>A</i>|<i>b</i>) = <i>n</i></td><td class="txt">genau eine</td></tr>
+    <tr><td>rang <i>A</i> = rang(<i>A</i>|<i>b</i>) &lt; <i>n</i></td><td class="txt">unendlich viele, n − rang freie Parameter</td></tr>
+    <tr><td>rang <i>A</i> &lt; rang(<i>A</i>|<i>b</i>)</td><td class="txt">keine (Zeile 0 … 0 | c mit c ≠ 0)</td></tr></tbody></table></div>`;
+TH.inv = `
+  <p>Die Inverse erfüllt <span class="m"><i>A</i><i>A</i><sup>−1</sup> = <i>A</i><sup>−1</sup><i>A</i> = <i>E</i></span>. Sie existiert genau dann, wenn <span class="m">det <i>A</i> ≠ 0</span>.</p>
+  <h4>2×2-Formel</h4>
+  <div class="f">${matHTML([["<i>a</i>", "<i>b</i>"], ["<i>c</i>", "<i>d</i>"]])}<sup>−1</sup> = ${F(1, "<i>a</i><i>d</i> − <i>b</i><i>c</i>")} ${matHTML([["<i>d</i>", "−<i>b</i>"], ["−<i>c</i>", "<i>a</i>"]])}</div>
+  <h4>Allgemein: Gauß-Jordan</h4>
+  <div class="f">(<i>A</i> | <i>E</i>) &nbsp;→&nbsp; (<i>E</i> | <i>A</i><sup>−1</sup>)</div>
+  <ul class="keys">
+    <li><span class="m">(<i>A</i><i>B</i>)<sup>−1</sup> = <i>B</i><sup>−1</sup><i>A</i><sup>−1</sup></span> und <span class="m">det(<i>A</i><sup>−1</sup>) = 1 / det <i>A</i></span>.</li>
+    <li>Mit der Inversen gilt <span class="m"><i>x</i> = <i>A</i><sup>−1</sup><i>b</i></span>. Für ein einzelnes LGS ist Gauß aber schneller.</li>
+  </ul>`;
+TH.rang = `
+  <p>Der Rang ist die maximale Anzahl linear unabhängiger Zeilen. Er ist immer gleich der maximalen Anzahl linear unabhängiger Spalten.</p>
+  <ul class="keys">
+    <li><b>Bestimmen:</b> Matrix auf Stufenform bringen und die Zeilen ungleich null zählen.</li>
+    <li><b>Lineare Unabhängigkeit:</b> <span class="m"><i>v</i>₁, …, <i>v</i><sub><i>k</i></sub></span> sind linear unabhängig, wenn die Matrix mit diesen Spalten Rang <i>k</i> hat. Dann folgt aus <span class="m">λ₁<i>v</i>₁ + … + λ<sub><i>k</i></sub><i>v</i><sub><i>k</i></sub> = 0</span>, dass alle λ = 0 sind.</li>
+    <li><b>Dimensionsformel:</b> Für <i>A</i> mit <i>n</i> Spalten gilt <span class="m">dim Kern <i>A</i> + rang <i>A</i> = <i>n</i></span>.</li>
+  </ul>`;
+TH.vek = `
+  <div class="f"><i>u</i> · <i>v</i> = <i>u</i>₁<i>v</i>₁ + <i>u</i>₂<i>v</i>₂ + <i>u</i>₃<i>v</i>₃ &nbsp;&nbsp; |<i>u</i>| = ${SQ("<i>u</i> · <i>u</i>")}</div>
+  <div class="f">cos φ = ${F("<i>u</i> · <i>v</i>", "|<i>u</i>| · |<i>v</i>|")}</div>
+  <ul class="keys">
+    <li><b>Orthogonal</b> genau dann, wenn <span class="m"><i>u</i> · <i>v</i> = 0</span>.</li>
+    <li>Vorzeichen des Skalarprodukts: positiv heißt spitzer Winkel, negativ stumpfer Winkel.</li>
+    <li>Projektion von <i>u</i> auf <i>v</i>: <span class="m">${F("<i>u</i> · <i>v</i>", "<i>v</i> · <i>v</i>")} <i>v</i></span>.</li>
+  </ul>`;
+TH.abb = `
+  <p>Jede Matrix <i>A</i> beschreibt eine lineare Abbildung <span class="m"><i>x</i> ↦ <i>A</i><i>x</i></span>. <b>Die Spalten von A sind die Bilder der Einheitsvektoren.</b> Damit ist die ganze Abbildung festgelegt.</p>
+  <ul class="keys">
+    <li><span class="m">|det <i>A</i>|</span> ist der Faktor, um den sich Flächen ändern. Bei <span class="m">det <i>A</i> &lt; 0</span> wird die Orientierung umgekehrt.</li>
+    <li><span class="m">det <i>A</i> = 0</span>: Die Ebene wird auf eine Gerade oder einen Punkt zusammengedrückt.</li>
+    <li>Drehung um α: <span class="m">${matHTML([["cos α", "−sin α"], ["sin α", "cos α"]])}</span>, Scherung: <span class="m">${matHTML([[1, "<i>k</i>"], [0, 1]])}</span>, Spiegelung an der x-Achse: <span class="m">${matHTML([[1, 0], [0, -1]])}</span>.</li>
+  </ul>`;
+TH.eig = `
+  <p>Ein Eigenvektor <span class="m"><i>v</i> ≠ 0</span> wird von <i>A</i> nur gestreckt, nicht gedreht: <span class="m"><i>A</i><i>v</i> = λ<i>v</i></span>. Der Faktor λ ist der Eigenwert.</p>
+  <div class="f">det(<i>A</i> − λ<i>E</i>) = 0 &nbsp;&nbsp; 2×2: &nbsp;λ² − Spur(<i>A</i>)·λ + det <i>A</i> = 0</div>
+  <ol class="steps">
+    <li>Charakteristisches Polynom aufstellen und Nullstellen λ bestimmen.</li>
+    <li>Für jedes λ den Kern von <span class="m"><i>A</i> − λ<i>E</i></span> berechnen. Das sind die Eigenvektoren.</li>
+  </ol>
+  <ul class="keys">
+    <li><b>Kontrolle:</b> Summe der Eigenwerte = Spur, Produkt = Determinante.</li>
+    <li>Gibt es <i>n</i> linear unabhängige Eigenvektoren, ist <i>A</i> diagonalisierbar: <span class="m"><i>A</i> = <i>P</i><i>D</i><i>P</i><sup>−1</sup></span>.</li>
+    <li>Im Werkzeug unten sind die Eigenrichtungen gestrichelt: Vektoren darauf bleiben auf ihrer Geraden.</li>
+  </ul>`;
+
+/* ---------- Themen ---------- */
+const TOPICS = [
+  { id: "ki", subj: "stat", title: "Konfidenzintervalle für μ", lead: "Wie genau ist ein Mittelwert aus der Stichprobe? Mit z- und t-Quantil.", theory: TH.ki, tool: toolKISim, gen: genKI },
+  { id: "kip", subj: "stat", title: "Konfidenzintervalle für Anteile", lead: "Umfragen auswerten: Wie sicher ist ein beobachteter Anteil?", theory: TH.kip, gen: genKIp },
+  { id: "n", subj: "stat", title: "Stichprobenumfang planen", lead: "Wie viele Beobachtungen braucht man für eine gewünschte Genauigkeit?", theory: TH.n, gen: genN },
+  { id: "test", subj: "stat", title: "Hypothesentests für μ", lead: "Gauß-Test und t-Test: ein-, zweiseitig, mit p-Wert oder kritischem Wert.", theory: TH.test, tool: toolPValue, gen: genTest },
+  { id: "ptest", subj: "stat", title: "Test für Anteile", lead: "Hat sich ein Anteil gegenüber einem Referenzwert verändert?", theory: TH.ptest, gen: genPTest },
+  { id: "fehler", subj: "stat", title: "Fehler 1. und 2. Art", lead: "α, β und die Güte eines Tests, und wie n sie beeinflusst.", theory: TH.fehler, tool: toolFehler, gen: genFehler },
+  { id: "qstat", subj: "stat", title: "Verständnisfragen", lead: "Begriffe und typische Fehlinterpretationen der induktiven Statistik.", quiz: QUIZ_STAT },
+  { id: "mm", subj: "lin", title: "Matrizen multiplizieren", lead: "Zeile mal Spalte, Formate und Rechenregeln.", theory: TH.mm, gen: genMatMul },
+  { id: "det", subj: "lin", title: "Determinanten", lead: "2×2, 3×3 mit Laplace oder Sarrus, und was die Zahl bedeutet.", theory: TH.det, gen: genDet },
+  { id: "lgs", subj: "lin", title: "Gauß-Verfahren", lead: "Lineare Gleichungssysteme systematisch lösen.", theory: TH.lgs, gen: genLGS },
+  { id: "inv", subj: "lin", title: "Inverse Matrix", lead: "Wann es sie gibt und wie man sie berechnet.", theory: TH.inv, gen: genInverse },
+  { id: "rang", subj: "lin", title: "Rang & lineare Unabhängigkeit", lead: "Wie viele wirklich verschiedene Richtungen stecken in einer Matrix?", theory: TH.rang, gen: genRang },
+  { id: "vek", subj: "lin", title: "Skalarprodukt & Winkel", lead: "Längen, Winkel und Orthogonalität im ℝ³.", theory: TH.vek, gen: genVek },
+  { id: "abb", subj: "lin", title: "Lineare Abbildungen", lead: "Matrizen als Bewegungen der Ebene: sehen, was A mit dem Gitter macht.", theory: TH.abb, tool: toolLinMap, gen: genAbb },
+  { id: "eig", subj: "lin", title: "Eigenwerte & Eigenvektoren", lead: "Richtungen, die eine Matrix nur streckt.", theory: TH.eig, tool: toolLinMap, gen: genEigen },
+  { id: "qlin", subj: "lin", title: "Verständnisfragen", lead: "Rechenregeln und Zusammenhänge der linearen Algebra.", quiz: QUIZ_LIN }
+];
+const SUBJ = { stat: "Induktive Statistik", lin: "Lineare Algebra" };
+
+/* ---------- Zustand & Navigation ---------- */
+let view = store.get("mt-view", { subj: "stat", topic: { stat: "ki", lin: "mm" } });
+if (!view.topic) view.topic = { stat: "ki", lin: "mm" };
+let cleanups = [];
+let redrawers = [];
+const app = $("#app"), main = $("#main");
+
+function updateChip() {
+  const tot = Object.values(progress).reduce((s, p) => s + p.c, 0);
+  $("#chip").innerHTML = `Serie <b>${meta.streak}</b> · Gelöst <b>${tot}</b>`;
+}
+function renderTopicList() {
+  const ul = $("#topics");
+  const subj = view.subj === "prog" ? null : view.subj;
+  $("#side-title").textContent = subj ? "Themen" : "Bereiche";
+  if (!subj) {
+    ul.innerHTML = Object.entries(SUBJ).map(([k, v]) => `<li><button type="button" data-goto="${k}">${v}</button></li>`).join("");
+    return;
+  }
+  ul.innerHTML = TOPICS.filter(t => t.subj === subj).map(t => {
+    const p = progress[t.id];
+    const sc = p ? `<span class="score${p.c >= 5 ? " full" : ""}">${p.c}/${p.t}</span>` : "";
+    return `<li><button type="button" data-topic="${t.id}" aria-current="${view.topic[subj] === t.id}"><span>${t.title}</span>${sc}</button></li>`;
+  }).join("");
+}
+function saveView() { store.set("mt-view", view); }
+function render() {
+  cleanups.forEach(f => f()); cleanups = []; redrawers = [];
+  app.dataset.subject = view.subj === "lin" ? "lin" : "stat";
+  $("#brand-mark").textContent = view.subj === "lin" ? "A" : XB;
+  ["stat", "lin", "prog"].forEach(s => $("#sw-" + s).setAttribute("aria-pressed", String(view.subj === s)));
+  renderTopicList();
+  if (view.subj === "prog") return renderProgress();
+  const t = TOPICS.find(x => x.id === view.topic[view.subj]) || TOPICS.find(x => x.subj === view.subj);
+  main.innerHTML = `
+    <header class="t-head"><p class="eyebrow">${SUBJ[t.subj]}</p><h2>${t.title}</h2><p class="lead">${t.lead}</p></header>
+    ${t.theory ? `<section class="theory" aria-label="Kurz erklärt">${t.theory}</section>` : ""}
+    ${t.tool ? `<section class="card"><div class="card-head"><h3>Ausprobieren</h3></div><div id="tool"></div></section>` : ""}
+    ${t.gen ? `<section class="card"><div class="card-head"><h3>Üben</h3><span class="meta" id="ex-meta"></span></div><div id="ex"></div></section>` : ""}
+    ${t.quiz ? `<section class="card"><div id="quiz"></div></section>` : ""}`;
+  if (t.tool) t.tool($("#tool"), t.id);
+  if (t.gen) renderExercise($("#ex"), t);
+  if (t.quiz) renderQuiz($("#quiz"), t);
+}
+document.addEventListener("click", e => {
+  const sw = e.target.closest("[data-subj]");
+  if (sw) { view.subj = sw.dataset.subj; saveView(); render(); window.scrollTo({ top: 0 }); return; }
+  const tp = e.target.closest("[data-topic]");
+  if (tp) { view.topic[view.subj] = tp.dataset.topic; saveView(); render(); main.scrollIntoView({ block: "start" }); return; }
+  const go = e.target.closest("[data-goto]");
+  if (go) { view.subj = go.dataset.goto; saveView(); render(); }
+});
+
+/* ---------- Übungsaufgaben ---------- */
+function renderExercise(box, topic) {
+  const ex = topic.gen();
+  let answered = false;
+  const p = progress[topic.id];
+  $("#ex-meta").textContent = p ? `${p.c} von ${p.t} richtig` : "Neue Zahlen bei jeder Aufgabe";
+  const fieldHTML = (f, i) => {
+    if (f.type === "select") return `<div class="field"><label class="lab" for="f${i}">${f.label}</label><select id="f${i}"><option value="">bitte wählen</option>${f.options.map(o => `<option>${o}</option>`).join("")}</select></div>`;
+    if (f.type === "matrix") {
+      let cells = "";
+      for (let r = 0; r < f.rows; r++) for (let c = 0; c < f.cols; c++) cells += `<input type="text" class="mcell" id="f${i}_${r}_${c}" autocomplete="off" aria-label="Zeile ${r + 1}, Spalte ${c + 1}">`;
+      return `<div class="field"><span class="lab">${f.label}</span><span class="mat in" style="grid-template-columns:repeat(${f.cols},auto)">${cells}</span></div>`;
+    }
+    return `<div class="field"><label class="lab" for="f${i}">${f.label}</label><input type="text" id="f${i}" autocomplete="off" spellcheck="false"></div>`;
+  };
+  box.innerHTML = `<div class="ex-prompt">${ex.prompt}</div>
+    <form class="ex-fields" id="ex-form" novalidate>
+      ${ex.fields.map(fieldHTML).join("")}
+      <p class="hint">Dezimalkomma oder Bruch (z. B. 3/4) sind erlaubt. Kleine Rundungsabweichungen werden akzeptiert.</p>
+      <div class="ex-actions">
+        <button type="submit" class="btn primary">Prüfen</button>
+        <button type="button" class="btn" id="ex-sol">Lösungsweg zeigen</button>
+        <button type="button" class="btn ghost" id="ex-new">Neue Aufgabe →</button>
+      </div>
+    </form>
+    <div class="feedback" id="ex-fb" hidden></div>
+    <div class="solution" id="ex-solbox" hidden><h4>Lösungsweg</h4>${ex.solution}</div>`;
+  const form = $("#ex-form", box);
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    let good = 0;
+    ex.fields.forEach((f, i) => {
+      let ok;
+      if (f.type === "select") {
+        const el = $("#f" + i, box); ok = el.value === f.ans; mark([el], ok);
+      } else if (f.type === "matrix") {
+        const els = [], vals = [];
+        for (let r = 0; r < f.rows; r++) { vals.push([]); for (let c = 0; c < f.cols; c++) { const el = $(`#f${i}_${r}_${c}`, box); els.push(el); vals[r].push(parseNum(el.value)); } }
+        if (vals.flat().some(isNaN)) ok = false;
+        else if (f.check) ok = f.check(vals);
+        else ok = vals.every((row, r) => row.every((v, c) => Math.abs(v - f.ans[r][c]) <= f.tol));
+        if (f.check) mark(els, ok);
+        else els.forEach((el, k) => { const r = Math.floor(k / f.cols), c = k % f.cols; mark([el], !isNaN(vals[r][c]) && Math.abs(vals[r][c] - f.ans[r][c]) <= f.tol); });
+      } else {
+        const el = $("#f" + i, box), v = parseNum(el.value);
+        ok = !isNaN(v) && (f.check ? f.check(v) : Math.abs(v - f.ans) <= f.tol); mark([el], ok);
+      }
+      if (ok) good++;
+    });
+    const all = good === ex.fields.length;
+    const fb = $("#ex-fb", box);
+    fb.hidden = false; fb.className = "feedback " + (all ? "good" : "bad");
+    fb.textContent = all ? "Alles richtig." : `${good} von ${ex.fields.length} Angaben stimmen. Prüfe die rot markierten Felder oder sieh dir den Lösungsweg an.`;
+    if (!answered) { answered = true; record(topic.id, all); const q = progress[topic.id]; $("#ex-meta").textContent = `${q.c} von ${q.t} richtig`; }
+  });
+  $("#ex-sol", box).addEventListener("click", () => {
+    $("#ex-solbox", box).hidden = false;
+    if (!answered) { answered = true; record(topic.id, false); const q = progress[topic.id]; $("#ex-meta").textContent = `${q.c} von ${q.t} richtig`; }
+  });
+  $("#ex-new", box).addEventListener("click", () => renderExercise(box, topic));
+}
+function mark(els, ok) { els.forEach(el => { el.classList.toggle("ok", ok); el.classList.toggle("no", !ok); }); }
+
+/* ---------- Quiz ---------- */
+function renderQuiz(box, topic) {
+  const order = shuffle(topic.quiz.map((_, i) => i));
+  let idx = 0, right = 0;
+  function show() {
+    if (idx >= order.length) {
+      box.innerHTML = `<div class="card-head"><h3>Runde beendet</h3></div><p class="q-text">${right} von ${order.length} richtig.</p><button type="button" class="btn primary" id="q-again">Neue Runde</button>`;
+      $("#q-again", box).addEventListener("click", () => renderQuiz(box, topic));
+      return;
+    }
+    const [q, opts, expl] = topic.quiz[order[idx]];
+    const shuffled = shuffle(opts.map((o, i) => ({ o, ok: i === 0 })));
+    box.innerHTML = `<div class="card-head"><h3>Frage ${idx + 1} von ${order.length}</h3><span class="meta">${right} richtig</span></div>
+      <p class="q-text">${q}</p>
+      <div class="q-opts">${shuffled.map((s, i) => `<button type="button" data-i="${i}">${s.o}</button>`).join("")}</div>
+      <div id="q-after"></div>`;
+    box.querySelectorAll(".q-opts button").forEach(b => b.addEventListener("click", () => {
+      const s = shuffled[+b.dataset.i];
+      box.querySelectorAll(".q-opts button").forEach((x, i) => { x.disabled = true; if (shuffled[i].ok) x.classList.add("ok"); });
+      if (!s.ok) b.classList.add("no"); else right++;
+      record(topic.id, s.ok);
+      $("#q-after", box).innerHTML = `<div class="q-expl"><b>${s.ok ? "Richtig." : "Nicht ganz."}</b> ${expl}</div><div class="ex-actions" style="margin-top:12px"><button type="button" class="btn primary" id="q-next">${idx + 1 < order.length ? "Nächste Frage →" : "Auswertung"}</button></div>`;
+      $("#q-next", box).addEventListener("click", () => { idx++; show(); });
+      $("#q-next", box).focus();
+    }));
+  }
+  show();
+}
+
+/* ---------- Fortschritt ---------- */
+function renderProgress() {
+  const tot = Object.values(progress).reduce((s, p) => s + p.c, 0);
+  const tried = Object.values(progress).reduce((s, p) => s + p.t, 0);
+  const col = subj => TOPICS.filter(t => t.subj === subj).map(t => {
+    const p = progress[t.id] || { t: 0, c: 0 }, q = p.t ? p.c / p.t : 0;
+    return `<div class="prog-row"><span class="nm">${t.title}</span><span class="val">${p.c} / ${p.t}${p.t ? ` · ${Math.round(q * 100)} %` : ""}</span>
+      <div class="bar" style="--sw:var(--${subj})"><i style="width:${Math.round(q * 100)}%"></i></div></div>`;
+  }).join("");
+  main.innerHTML = `<header class="t-head"><p class="eyebrow">Übersicht</p><h2>Dein Fortschritt</h2><p class="lead">Gezählt wird der erste Versuch je Aufgabe. Wer den Lösungsweg vorher aufdeckt, bekommt die Aufgabe als nicht gelöst gewertet.</p></header>
+    <section class="card"><div class="stat-tiles">
+      <div><b>${tot}</b><span>richtig gelöst</span></div>
+      <div><b>${tried ? Math.round(tot / tried * 100) : 0} %</b><span>Trefferquote</span></div>
+      <div><b>${meta.streak}</b><span>aktuelle Serie</span></div>
+      <div><b>${meta.best}</b><span>beste Serie</span></div></div></section>
+    <div class="prog-grid">
+      <section class="card"><h3>${SUBJ.stat}</h3>${col("stat")}</section>
+      <section class="card"><h3>${SUBJ.lin}</h3>${col("lin")}</section>
+    </div>
+    <div><button type="button" class="btn" id="reset">Fortschritt zurücksetzen</button></div>`;
+  const rb = $("#reset");
+  rb.addEventListener("click", () => {
+    if (rb.dataset.arm) { progress = {}; meta = { streak: 0, best: 0 }; store.set("mt-progress", progress); store.set("mt-meta", meta); updateChip(); render(); }
+    else { rb.dataset.arm = "1"; rb.textContent = "Wirklich zurücksetzen? Nochmal klicken"; rb.classList.add("no"); }
+  });
+}
+
+/* ---------- Zeichenhilfen ---------- */
+const cssv = (el, n) => getComputedStyle(el).getPropertyValue(n).trim();
+function setupCanvas(cv, h) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(240, cv.parentElement.clientWidth);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+function watch(cv, draw) {
+  redrawers.push(draw);
+  let lastW = 0;
+  const ro = new ResizeObserver(() => { const w = cv.parentElement.clientWidth; if (Math.abs(w - lastW) > 1) { lastW = w; draw(); } });
+  ro.observe(cv.parentElement); cleanups.push(() => ro.disconnect());
+}
+function shadeArea(ctx, f, a, b, X, Y) {
+  if (b <= a) return;
+  ctx.beginPath(); ctx.moveTo(X(a), Y(0));
+  for (let i = 0; i <= 120; i++) { const x = a + (b - a) * i / 120; ctx.lineTo(X(x), Y(f(x))); }
+  ctx.lineTo(X(b), Y(0)); ctx.closePath(); ctx.fill();
+}
+function strokeCurve(ctx, f, a, b, X, Y) {
+  ctx.beginPath();
+  for (let i = 0; i <= 240; i++) { const x = a + (b - a) * i / 240; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); }
+  ctx.stroke();
+}
+const MONO = '12px "JetBrains Mono", ui-monospace, monospace';
+
+/* ---------- Werkzeug: KI-Simulation ---------- */
+function toolKISim(el) {
+  el.innerHTML = `<p class="tool-note">Grundgesamtheit: Normalverteilung mit <span class="m">μ = 100</span> und bekanntem <span class="m">σ = 15</span>. Jede waagerechte Linie ist ein Konfidenzintervall aus einer eigenen Zufallsstichprobe. Rot markierte Intervalle verfehlen μ.</p>
+    <div class="ctl-row">
+      <label class="ctl" for="ks-n"><span>Stichprobenumfang <i>n</i> = <output id="ks-no">25</output></span><input type="range" id="ks-n" min="4" max="100" value="25"></label>
+      <label class="ctl" for="ks-c"><span>Konfidenzniveau</span><select id="ks-c"><option value="0.8">80 %</option><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <button type="button" class="btn primary" id="ks-go">50 neue Stichproben</button>
+    </div>
+    <div class="canvas-wrap"><canvas id="ks-cv" role="img" aria-label="50 simulierte Konfidenzintervalle um μ = 100"></canvas></div>
+    <p class="readout-line" id="ks-out"></p>`;
+  const cv = $("#ks-cv", el), nEl = $("#ks-n", el), cEl = $("#ks-c", el);
+  let data = [], total = { hit: 0, all: 0 };
+  function sample(reset) {
+    if (reset) total = { hit: 0, all: 0 };
+    const n = +nEl.value, conf = +cEl.value, q = invPhi(1 - (1 - conf) / 2), se = 15 / Math.sqrt(n);
+    data = Array.from({ length: 50 }, () => { const xb = 100 + se * gauss(); return { xb, lo: xb - q * se, hi: xb + q * se }; });
+    const hits = data.filter(d => d.lo <= 100 && d.hi >= 100).length;
+    total.hit += hits; total.all += 50;
+    $("#ks-out", el).innerHTML = `${hits} von 50 Intervallen überdecken μ (${hits * 2} %). Seit der letzten Einstellung: ${total.hit} von ${total.all} = ${fmt(total.hit / total.all * 100, 1)} %, erwartet ${pct(conf)}. Halbe Breite: <span class="m">${fmt(q * se, 2)}</span>.`;
+    draw();
+  }
+  function draw() {
+    const { ctx, w, h } = setupCanvas(cv, 360);
+    const L = 8, R = 8, T = 8, B = 26, lo = 60, hi = 140;
+    const X = x => L + (x - lo) / (hi - lo) * (w - L - R);
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent"), bad = cssv(cv, "--bad");
+    ctx.font = MONO; ctx.textAlign = "center"; ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
+    for (let x = lo; x <= hi; x += 10) { ctx.beginPath(); ctx.moveTo(X(x), T); ctx.lineTo(X(x), h - B); ctx.stroke(); ctx.fillText(String(x), X(x), h - 8); }
+    const rowH = (h - T - B) / data.length;
+    data.forEach((d, i) => {
+      const y = T + rowH * (i + 0.5), hit = d.lo <= 100 && d.hi >= 100;
+      ctx.strokeStyle = hit ? acc : bad; ctx.fillStyle = hit ? acc : bad; ctx.lineWidth = hit ? 1.6 : 2.4;
+      ctx.beginPath(); ctx.moveTo(X(Math.max(lo, d.lo)), y); ctx.lineTo(X(Math.min(hi, d.hi)), y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X(d.xb), y, 2, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(X(100), T - 4); ctx.lineTo(X(100), h - B); ctx.stroke(); ctx.setLineDash([]);
+  }
+  nEl.addEventListener("input", () => { $("#ks-no", el).textContent = nEl.value; sample(true); });
+  cEl.addEventListener("change", () => sample(true));
+  $("#ks-go", el).addEventListener("click", () => sample(false));
+  watch(cv, draw);
+  sample(true);
+}
+
+/* ---------- Werkzeug: p-Wert ---------- */
+function toolPValue(el) {
+  el.innerHTML = `<p class="tool-note">Standardnormalverteilung der Teststatistik unter H₀. Verschiebe <i>z</i> und beobachte, wie die p-Wert-Fläche mit dem Ablehnbereich (rot) zusammenhängt.</p>
+    <div class="ctl-row">
+      <label class="ctl" for="pv-z"><span>Teststatistik <i>z</i> = <output id="pv-zo">1,80</output></span><input type="range" id="pv-z" min="-4" max="4" step="0.01" value="1.8"></label>
+      <label class="ctl" for="pv-a"><span>Alternative H₁</span><select id="pv-a"><option value="two">μ ≠ μ₀ (zweiseitig)</option><option value="greater" selected>μ &gt; μ₀ (rechts)</option><option value="less">μ &lt; μ₀ (links)</option></select></label>
+      <label class="ctl" for="pv-al"><span>Niveau α</span><select id="pv-al"><option value="0.01">1 %</option><option value="0.05" selected>5 %</option><option value="0.1">10 %</option></select></label>
+    </div>
+    <div class="canvas-wrap"><canvas id="pv-cv" role="img" aria-label="Normalverteilung mit p-Wert-Fläche und Ablehnbereich"></canvas></div>
+    <div class="legend"><span style="--sw:var(--accent)">p-Wert-Fläche</span><span style="--sw:var(--bad)">Ablehnbereich (Fläche α)</span></div>
+    <p class="readout-line" id="pv-out"></p>`;
+  const cv = $("#pv-cv", el), zEl = $("#pv-z", el), aEl = $("#pv-a", el), alEl = $("#pv-al", el);
+  function draw() {
+    const z = +zEl.value, alt = aEl.value, al = +alEl.value;
+    $("#pv-zo", el).textContent = fmt(z, 2);
+    const { ctx, w, h } = setupCanvas(cv, 280);
+    const L = 10, R = 10, T = 22, B = 28;
+    const X = x => L + (x + 4) / 8 * (w - L - R), Y = y => h - B - y / 0.42 * (h - T - B);
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent"), bad = cssv(cv, "--bad");
+    const crit = alt === "two" ? invPhi(1 - al / 2) : invPhi(1 - al);
+    ctx.fillStyle = bad; ctx.globalAlpha = 0.22;
+    if (alt !== "greater") shadeArea(ctx, phi, -4, alt === "two" ? -crit : -crit, X, Y);
+    if (alt !== "less") shadeArea(ctx, phi, crit, 4, X, Y);
+    ctx.fillStyle = acc; ctx.globalAlpha = 0.5;
+    if (alt === "two") { shadeArea(ctx, phi, -4, -Math.abs(z), X, Y); shadeArea(ctx, phi, Math.abs(z), 4, X, Y); }
+    else if (alt === "greater") shadeArea(ctx, phi, z, 4, X, Y);
+    else shadeArea(ctx, phi, -4, z, X, Y);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+    ctx.font = MONO; ctx.fillStyle = muted; ctx.textAlign = "center";
+    for (let i = -4; i <= 4; i++) { ctx.fillText(nm(i), X(i), h - 9); ctx.beginPath(); ctx.moveTo(X(i), Y(0)); ctx.lineTo(X(i), Y(0) + 4); ctx.stroke(); }
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; strokeCurve(ctx, phi, -4, 4, X, Y);
+    ctx.strokeStyle = bad; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
+    const crits = alt === "two" ? [-crit, crit] : alt === "greater" ? [crit] : [-crit];
+    crits.forEach(c => { ctx.beginPath(); ctx.moveTo(X(c), Y(0)); ctx.lineTo(X(c), T); ctx.stroke(); });
+    ctx.setLineDash([]);
+    ctx.strokeStyle = acc; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(z), Y(0)); ctx.lineTo(X(z), T - 6); ctx.stroke();
+    ctx.fillStyle = ink; ctx.textAlign = X(z) > w - 60 ? "right" : X(z) < 60 ? "left" : "center"; ctx.fillText("z = " + fmt(z, 2), X(z), T - 9);
+    const p = pval(z, alt), rej = p < al;
+    $("#pv-out", el).innerHTML = `<span class="m"><i>p</i> = ${fmt(p, 4)}</span> ${rej ? "&lt;" : "≥"} <span class="m">α = ${fmtP(al)}</span>: <span style="color:var(${rej ? "--bad" : "--good"})">${rej ? "H₀ ablehnen" : "H₀ nicht ablehnen"}</span>. Kritischer Wert: <span class="m">${alt === "two" ? "±" : alt === "less" ? "−" : ""}${fmt(crit, 3)}</span>.`;
+  }
+  [zEl, aEl, alEl].forEach(x => x.addEventListener("input", draw));
+  watch(cv, draw); draw();
+}
+
+/* ---------- Werkzeug: Fehler 1./2. Art ---------- */
+function toolFehler(el) {
+  el.innerHTML = `<p class="tool-note">Rechtsseitiger Gauß-Test <span class="m">H₀: μ ≤ 100</span> mit <span class="m">σ = 15</span>. Links die Verteilung von ${XB} unter H₀, rechts unter dem wahren Wert μ₁.</p>
+    <div class="ctl-row">
+      <label class="ctl" for="fe-m"><span>wahrer Wert μ₁ = <output id="fe-mo">106</output></span><input type="range" id="fe-m" min="100" max="120" step="0.5" value="106"></label>
+      <label class="ctl" for="fe-n"><span>Stichprobenumfang <i>n</i> = <output id="fe-no">25</output></span><input type="range" id="fe-n" min="4" max="150" value="25"></label>
+      <label class="ctl" for="fe-a"><span>Niveau α</span><select id="fe-a"><option value="0.01">1 %</option><option value="0.05" selected>5 %</option><option value="0.1">10 %</option></select></label>
+    </div>
+    <div class="canvas-wrap"><canvas id="fe-cv" role="img" aria-label="Verteilungen unter H0 und H1 mit Fehlerflächen"></canvas></div>
+    <div class="legend"><span style="--sw:var(--bad)">α: Fehler 1. Art</span><span style="--sw:var(--warn)">β: Fehler 2. Art</span><span style="--sw:var(--accent)">Güte 1 − β</span></div>
+    <p class="readout-line" id="fe-out"></p>`;
+  const cv = $("#fe-cv", el), mEl = $("#fe-m", el), nEl = $("#fe-n", el), aEl = $("#fe-a", el);
+  function draw() {
+    const mu1 = +mEl.value, n = +nEl.value, al = +aEl.value, se = 15 / Math.sqrt(n);
+    $("#fe-mo", el).textContent = fmt(mu1, 1); $("#fe-no", el).textContent = n;
+    const c = 100 + invPhi(1 - al) * se, beta = Phi((c - mu1) / se);
+    const { ctx, w, h } = setupCanvas(cv, 280);
+    const L = 10, R = 10, T = 22, B = 28, lo = 100 - 4 * se, hi = Math.max(mu1, c) + 4 * se;
+    const f0 = x => phi((x - 100) / se) / se, f1 = x => phi((x - mu1) / se) / se, ymax = 0.42 / se;
+    const X = x => L + (x - lo) / (hi - lo) * (w - L - R), Y = y => h - B - y / ymax * (h - T - B);
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent"), bad = cssv(cv, "--bad"), warn = cssv(cv, "--warn");
+    ctx.globalAlpha = 0.22; ctx.fillStyle = acc; shadeArea(ctx, f1, c, hi, X, Y);
+    ctx.globalAlpha = 0.45; ctx.fillStyle = warn; shadeArea(ctx, f1, lo, c, X, Y);
+    ctx.fillStyle = bad; shadeArea(ctx, f0, c, hi, X, Y); ctx.globalAlpha = 1;
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+    ctx.font = MONO; ctx.fillStyle = muted; ctx.textAlign = "center";
+    const step = (hi - lo) > 40 ? 10 : (hi - lo) > 16 ? 5 : 2;
+    for (let x = Math.ceil(lo / step) * step; x <= hi; x += step) ctx.fillText(String(x), X(x), h - 9);
+    ctx.lineWidth = 2; ctx.strokeStyle = ink; strokeCurve(ctx, f0, lo, hi, X, Y);
+    ctx.strokeStyle = acc; strokeCurve(ctx, f1, lo, hi, X, Y);
+    ctx.fillStyle = ink; ctx.fillText("H₀", X(100), Y(ymax * 0.95) - 4);
+    ctx.fillStyle = acc; if (Math.abs(X(mu1) - X(100)) > 24) ctx.fillText("H₁", X(mu1), Y(ymax * 0.95) - 4);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(c), Y(0)); ctx.lineTo(X(c), T - 4); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = ink; ctx.fillText("c = " + fmt(c, 2), X(c), T - 8);
+    $("#fe-out", el).innerHTML = `<span class="m">α = ${fmtP(al)}</span> · <span class="m">β = ${fmt(beta, 3)}</span> · Güte <span class="m">1 − β = ${fmt(1 - beta, 3)}</span> · Standardfehler <span class="m">${fmt(se, 2)}</span>`;
+  }
+  [mEl, nEl, aEl].forEach(x => x.addEventListener("input", draw));
+  watch(cv, draw); draw();
+}
+
+/* ---------- Werkzeug: Lineare Abbildung ---------- */
+const PRESETS = [
+  ["Identität", [1, 0, 0, 1]], ["Drehung 30°", [0.87, -0.5, 0.5, 0.87]], ["Scherung", [1, 1, 0, 1]],
+  ["Spiegelung", [1, 0, 0, -1]], ["Streckung", [2, 0, 0, 0.5]], ["Projektion", [1, 0, 0, 0]],
+  ["Symmetrisch", [2, 1, 1, 2]], ["Beispiel", [1, 2, 2, 1]]
+];
+function toolLinMap(el, id) {
+  const start = id === "eig" ? [2, 1, 1, 2] : [1, 1, 0, 1];
+  el.innerHTML = `<p class="tool-note">Das graue Gitter ist die Ausgangsebene, das farbige ihr Bild unter <i>A</i>. Die Pfeile zeigen <span style="color:var(--v1)"><i>A</i><i>e</i>₁</span> (erste Spalte) und <span style="color:var(--v2)"><i>A</i><i>e</i>₂</span> (zweite Spalte). Gestrichelte Geraden sind Eigenrichtungen.</p>
+    <div class="lm">
+      <div>
+        <div class="lm-sliders">
+          ${["a", "b", "c", "d"].map((k, i) => `<label class="ctl" for="lm-${k}"><span><i>${k}</i> = <output id="lm-${k}o">${fmt(start[i], 1)}</output></span><input type="range" id="lm-${k}" min="-3" max="3" step="0.1" value="${start[i]}"></label>`).join("")}
+        </div>
+        <div class="mrow" id="lm-mat"></div>
+        <div class="presets">${PRESETS.map((p, i) => `<button type="button" class="btn small" data-p="${i}">${p[0]}</button>`).join("")}</div>
+        <dl class="readout" id="lm-read"></dl>
+      </div>
+      <div class="canvas-wrap"><canvas id="lm-cv" role="img" aria-label="Bild des Gitters unter der linearen Abbildung"></canvas></div>
+    </div>`;
+  const cv = $("#lm-cv", el), ins = ["a", "b", "c", "d"].map(k => $("#lm-" + k, el));
+  function draw() {
+    const [a, b, c, d] = ins.map(x => +x.value);
+    ["a", "b", "c", "d"].forEach((k, i) => { $(`#lm-${k}o`, el).textContent = fmt(+ins[i].value, 1); });
+    $("#lm-mat", el).innerHTML = `<span><i>A</i> = ${matHTML([[fmt(a, 1), fmt(b, 1)], [fmt(c, 1), fmt(d, 1)]])}</span>`;
+    const size = Math.min(cv.parentElement.clientWidth, 460);
+    const { ctx, w, h } = setupCanvas(cv, size);
+    const range = 4, s = Math.min(w, h) / (2 * range), cx = w / 2, cy = h / 2;
+    const P = (x, y) => [cx + x * s, cy - y * s], M = (x, y) => [a * x + b * y, c * x + d * y];
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent"), v1 = cssv(cv, "--v1"), v2 = cssv(cv, "--v2"), warn = cssv(cv, "--warn");
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    for (let i = -range; i <= range; i++) {
+      ctx.beginPath(); ctx.moveTo(...P(i, -range)); ctx.lineTo(...P(i, range)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(...P(-range, i)); ctx.lineTo(...P(range, i)); ctx.stroke();
+    }
+    ctx.strokeStyle = muted; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(...P(-range, 0)); ctx.lineTo(...P(range, 0)); ctx.moveTo(...P(0, -range)); ctx.lineTo(...P(0, range)); ctx.stroke();
+    ctx.strokeStyle = acc; ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+    const G = 12;
+    for (let i = -G; i <= G; i++) {
+      ctx.beginPath(); ctx.moveTo(...P(...M(i, -G))); ctx.lineTo(...P(...M(i, G))); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(...P(...M(-G, i))); ctx.lineTo(...P(...M(G, i))); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const det = a * d - b * c;
+    ctx.fillStyle = det < 0 ? warn : acc; ctx.globalAlpha = 0.22;
+    ctx.beginPath(); ctx.moveTo(...P(0, 0)); ctx.lineTo(...P(a, c)); ctx.lineTo(...P(a + b, c + d)); ctx.lineTo(...P(b, d)); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+    const tr = a + d, disc = tr * tr - 4 * det;
+    let eig = "";
+    if (disc >= -1e-9) {
+      const r = Math.sqrt(Math.max(0, disc)), ls = [(tr - r) / 2, (tr + r) / 2];
+      eig = r < 1e-9 ? `λ = ${fmt(ls[0], 2)} (doppelt)` : `λ₁ = ${fmt(ls[0], 2)}, λ₂ = ${fmt(ls[1], 2)}`;
+      const scalar = Math.abs(b) < 1e-9 && Math.abs(c) < 1e-9 && Math.abs(a - d) < 1e-9;
+      if (!scalar) {
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = ink; ctx.lineWidth = 1.4;
+        const uniq = r < 1e-9 ? [ls[0]] : ls;
+        uniq.forEach(l => {
+          let v = Math.abs(b) > 1e-9 ? [b, l - a] : Math.abs(c) > 1e-9 ? [l - d, c] : (Math.abs(l - a) < 1e-9 ? [1, 0] : [0, 1]);
+          const nrm = Math.hypot(...v); v = [v[0] / nrm * 10, v[1] / nrm * 10];
+          ctx.beginPath(); ctx.moveTo(...P(-v[0], -v[1])); ctx.lineTo(...P(v[0], v[1])); ctx.stroke();
+        });
+        ctx.setLineDash([]);
+      }
+    } else {
+      const re = tr / 2, im = Math.sqrt(-disc) / 2;
+      eig = `${fmt(re, 2)} ± ${fmt(im, 2)}i (keine reelle Eigenrichtung)`;
+    }
+    const arrow = (x, y, col) => {
+      const [x0, y0] = P(0, 0), [x1, y1] = P(x, y), ang = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      if (len > 6) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 11 * Math.cos(ang - 0.4), y1 - 11 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 11 * Math.cos(ang + 0.4), y1 - 11 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill(); }
+    };
+    arrow(a, c, v1); arrow(b, d, v2);
+    ctx.restore();
+    $("#lm-read", el).innerHTML = `<dt>det <i>A</i></dt><dd>${fmt(det, 2)}${det < 0 ? " · Orientierung umgekehrt" : Math.abs(det) < 1e-9 ? " · Ebene kollabiert" : ""}</dd>
+      <dt>Flächenfaktor</dt><dd>${fmt(Math.abs(det), 2)}</dd><dt>Spur</dt><dd>${fmt(tr, 2)}</dd><dt>Eigenwerte</dt><dd>${eig}</dd>`;
+  }
+  ins.forEach(x => x.addEventListener("input", draw));
+  el.querySelectorAll("[data-p]").forEach(btn => btn.addEventListener("click", () => {
+    PRESETS[+btn.dataset.p][1].forEach((v, i) => { ins[i].value = v; }); draw();
+  }));
+  watch(cv, draw); draw();
+}
+
+/* ---------- Thema & Start ---------- */
+const mq = window.matchMedia("(prefers-color-scheme: dark)");
+const redrawAll = () => redrawers.forEach(f => f());
+if (mq.addEventListener) mq.addEventListener("change", redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+updateChip();
+render();
+</script>

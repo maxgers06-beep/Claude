@@ -120,7 +120,9 @@ h4 { margin: 18px 0 6px; font: 600 .78rem/1.2 var(--f-body); letter-spacing: .08
 }
 .f .lbl { font: .8rem var(--f-body); color: var(--muted); margin-left: 14px; font-style: normal; }
 .m, .f i, .m i { font-family: var(--f-math); }
-.m { font-size: 1.06em; white-space: nowrap; }
+.m { font-size: 1.06em; }
+.frac, .binom, sub, sup { white-space: nowrap; }
+.steps > li, .keys > li { min-width: 0; overflow-wrap: anywhere; }
 .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 2px; line-height: 1.15; }
 .frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px 1px; }
 .frac > span:last-child { padding: 1px 3px 0; }
@@ -166,7 +168,7 @@ table.qt td.txt { font-family: var(--f-body); font-size: .95rem; }
   font: 1rem var(--f-mono); width: 9.5em; font-variant-numeric: tabular-nums;
 }
 .field select { font-family: var(--f-body); width: auto; }
-.field .mcell { width: 4.6em; text-align: center; padding: 6px 4px; }
+.field input.mcell { width: 4.2em; text-align: center; padding: 6px 4px; }
 .ok { border-color: var(--good) !important; background: var(--good-soft) !important; }
 .no { border-color: var(--bad) !important; background: var(--bad-soft) !important; }
 .ex-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
@@ -242,12 +244,30 @@ input[type="range"] { accent-color: var(--accent); width: 200px; max-width: 100%
 .stat-tiles b { font: 700 1.8rem/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
 .stat-tiles span { color: var(--muted); font-size: .85rem; }
 
+.grp { margin: 14px 0 4px; padding: 0 10px; font: 600 .7rem/1.2 var(--f-body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.grp:first-child { margin-top: 0; }
+.grp.aus { border-top: 1px dashed var(--line); padding-top: 12px; }
+.side { max-height: calc(100vh - 24px); overflow-y: auto; }
+.aus-note { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; border: 1px dashed var(--line); color: var(--muted); font-size: .9rem; max-width: 62ch; }
+.binom { display: inline-flex; align-items: center; vertical-align: middle; }
+.binom .pa { font-size: 1.9em; font-weight: 300; line-height: 1; }
+.binom .bc { display: inline-flex; flex-direction: column; text-align: center; line-height: 1.1; font-size: .9em; margin: 0 1px; }
+.tilde { font: 1.3rem var(--f-math); color: var(--muted); }
+table.tab { border-collapse: collapse; font: 1rem var(--f-math); font-variant-numeric: tabular-nums; margin: 6px 0; }
+table.tab th, table.tab td { padding: 4px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+table.tab th { font-weight: 400; color: var(--muted); }
+table.tab th:last-child, table.tab td:last-child { border-left: 1px solid var(--muted); }
+table.tab tbody tr:first-child td { border-bottom: 1.5px solid var(--muted); }
+table.tab td.piv { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; font-weight: 700; }
+table.qt tr.best td { background: var(--accent-soft); font-weight: 700; }
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .side { position: static; }
   .side h2 { display: none; }
   .topics { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 6px; }
   .topics button { white-space: nowrap; border: 1px solid var(--line); background: var(--surface); }
+  .side { max-height: none; overflow: visible; }
+  .grp { display: none; }
   .lm { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 520px) {
@@ -269,7 +289,7 @@ input[type="range"] { accent-color: var(--accent); width: 200px; max-width: 100%
       <div class="brand-mark" aria-hidden="true" id="brand-mark">x̄</div>
       <div>
         <h1>Statistik &amp; LinA Trainer</h1>
-        <p>Induktive Statistik und Lineare Algebra: verstehen, ausprobieren, üben</p>
+        <p>Nach deinen Skripten MS02: Zufallsvariablen, Verteilungen, Lineare Algebra und Optimierung</p>
       </div>
     </div>
     <div class="seg" role="group" aria-label="Bereich wählen">
@@ -397,6 +417,7 @@ function matHTML(M, aug = 0) {
   return h + "</span>";
 }
 const matMul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, a, k) => s + a * B[k][j], 0)));
+const RN = ["i", "ii", "iii", "iv", "v", "vi"];
 function rref(M, augCols = 0) {
   const A = M.map(r => r.map(fr)); const rows = A.length, cols = A[0].length, lim = cols - augCols;
   const steps = []; const pivots = []; let pr = 0;
@@ -406,14 +427,14 @@ function rref(M, augCols = 0) {
     if (p < 0) for (let r = pr; r < rows; r++) if (!A[r][c].isZero()) { p = r; break; }
     if (p < 0) continue;
     const ops = [];
-    if (p !== pr) { [A[p], A[pr]] = [A[pr], A[p]]; ops.push(`Z${pr + 1} ↔ Z${p + 1}`); }
+    if (p !== pr) { [A[p], A[pr]] = [A[pr], A[p]]; ops.push(`(${RN[pr]}) ↔ (${RN[p]})`); }
     const pv = A[pr][c];
-    if (!pv.isOne()) { A[pr] = A[pr].map(x => x.div(pv)); ops.push(`Z${pr + 1} ← Z${pr + 1} : ${pf(pv)}`); }
+    if (!pv.isOne()) { A[pr] = A[pr].map(x => x.div(pv)); ops.push(`(${RN[pr]}) · ${pf(new Fr(pv.d, pv.n))}`); }
     for (let r = 0; r < rows; r++) {
       if (r === pr) continue;
       const f = A[r][c]; if (f.isZero()) continue;
       A[r] = A[r].map((x, j) => x.sub(f.mul(A[pr][j])));
-      ops.push(`Z${r + 1} ← Z${r + 1} ${f.n > 0 ? "−" : "+"} ${f.abs().isOne() ? "" : f.abs() + "·"}Z${pr + 1}`);
+      ops.push(`(${RN[r]}) ${f.n > 0 ? "−" : "+"} ${f.abs().isOne() ? "" : f.abs() + "·"}(${RN[pr]})`);
     }
     steps.push({ ops, M: A.map(r => r.slice()) }); pivots.push(c); pr++;
   }
@@ -421,7 +442,7 @@ function rref(M, augCols = 0) {
 }
 function gaussHTML(start, steps, aug) {
   return `<div class="gauss"><div class="gstep"><div class="ops"><code>Start</code></div>${matHTML(start, aug)}</div>` +
-    steps.map(s => `<div class="gstep"><div class="ops">${s.ops.map(o => `<code>${o}</code>`).join("")}</div>${matHTML(s.M, aug)}</div>`).join("") + "</div>";
+    steps.map(s => `<div class="gstep"><div class="ops">${s.ops.map(o => `<code>${o}</code>`).join("")}</div><span class="tilde">~</span>${matHTML(s.M, aug)}</div>`).join("") + "</div>";
 }
 const det2 = A => A[0][0] * A[1][1] - A[0][1] * A[1][0];
 const det3 = A => A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
@@ -637,6 +658,9 @@ function genFehler() {
 /* ---------- Aufgaben: Lineare Algebra ---------- */
 function randMat(r, c, lo, hi) { return Array.from({ length: r }, () => Array.from({ length: c }, () => rnd(lo, hi))); }
 function genMatMul() {
+  const rv = Math.random();
+  if (rv < 0.2) return genMarkt();
+  if (rv < 0.4) return genRohstoff();
   const type = pick(["22", "23", "Av", "32"]);
   let A, B;
   if (type === "22") { A = randMat(2, 2, -3, 4); B = randMat(2, 2, -3, 4); }
@@ -660,6 +684,7 @@ function genMatMul() {
   };
 }
 function genDet() {
+  if (Math.random() < 0.25) return genDetRules();
   if (Math.random() < 0.3) {
     const A = randMat(2, 2, -6, 7), d = det2(A);
     return {
@@ -690,6 +715,7 @@ function eqHTML(row, rhs) {
   return `${s} = ${nm(rhs)}`;
 }
 function genLGS() {
+  if (Math.random() < 0.35) return genLGSSing();
   for (;;) {
     const A = randMat(3, 3, -3, 3);
     if (det3(A) === 0 || A.some(r => r.filter(x => x === 0).length > 1)) continue;
@@ -702,13 +728,14 @@ function genLGS() {
       prompt: `<p>Löse das lineare Gleichungssystem mit dem Gauß-Verfahren.</p>
         <div class="eqs">${A.map((r, i) => eqHTML(r, b[i])).join("<br>")}</div>`,
       fields: [1, 2, 3].map(i => ({ label: `<span class="m">${vsub(i)}</span>`, ans: x[i - 1], tol: 1e-6 })),
-      solution: `<p>Erweiterte Koeffizientenmatrix <span class="m">(<i>A</i> | <i>b</i>)</span> schrittweise auf reduzierte Stufenform bringen (Z = Zeile):</p>
+      solution: `<p>Erweiterte Koeffizientenmatrix <span class="m">(<i>A</i> | <i>b</i>)</span> schrittweise auf Treppenstufenform mit Nullen über den führenden Einträgen bringen (römische Ziffern = Zeilen):</p>
         ${gaussHTML(aug, R.steps, 1)}
         <p>Aus der letzten Spalte liest du ab: <span class="m">${vsub(1)} = ${nm(x[0])}, ${vsub(2)} = ${nm(x[1])}, ${vsub(3)} = ${nm(x[2])}</span>. Probe: Einsetzen in alle drei Gleichungen.</p>`
     };
   }
 }
 function genInverse() {
+  if (Math.random() < 0.4) return genInvSolve();
   for (;;) {
     const A = randMat(2, 2, -4, 5), d = det2(A);
     if (d === 0 || Math.abs(d) > 6) continue;
@@ -744,33 +771,6 @@ function genRang() {
       fields: [{ label: `<span class="m">rang <i>A</i></span>`, ans: r, tol: 1e-9 }],
       solution: `<p>Mit Zeilenumformungen auf Stufenform bringen:</p>${gaussHTML(rows, R.steps, 0)}
         <p>Es bleiben <b>${r}</b> Zeilen ungleich null, also <span class="m">rang <i>A</i> = ${r}</span>. ${r < 3 ? `Die Zeilen sind linear abhängig: ${3 - r} davon lassen sich aus den anderen kombinieren.` : "Die drei Zeilen sind linear unabhängig."}</p>`
-    };
-  }
-}
-function genVek() {
-  for (;;) {
-    const u = [rnd(-4, 5), rnd(-4, 5), rnd(-4, 5)];
-    let v;
-    if (Math.random() < 0.3) { const w = [rnd(-2, 2), rnd(-2, 2), rnd(-2, 2)]; v = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]; }
-    else v = [rnd(-4, 5), rnd(-4, 5), rnd(-4, 5)];
-    if (u.every(x => x === 0) || v.every(x => x === 0) || v.some(x => Math.abs(x) > 12)) continue;
-    const dot = u.reduce((s, x, i) => s + x * v[i], 0);
-    const nu2 = u.reduce((s, x) => s + x * x, 0), nv2 = v.reduce((s, x) => s + x * x, 0);
-    const cos = dot / Math.sqrt(nu2 * nv2);
-    if (Math.abs(cos) > 0.999) continue;
-    const ang = Math.acos(cos) * 180 / Math.PI;
-    const col = x => matHTML(x.map(e => [e]));
-    return {
-      prompt: `<p>Gegeben sind die Vektoren</p><div class="mrow"><span><i>u</i> = ${col(u)}</span><span><i>v</i> = ${col(v)}</span></div>
-        <p>Berechne das Skalarprodukt und den Winkel zwischen <i>u</i> und <i>v</i> in Grad.</p>`,
-      fields: [
-        { label: `<span class="m"><i>u</i> · <i>v</i></span>`, ans: dot, tol: 1e-9 },
-        { label: "Winkel φ in Grad", ans: ang, tol: 0.15 }
-      ],
-      solution: `<ol class="steps">
-        <li><span class="m"><i>u</i> · <i>v</i> = ${u.map((x, i) => `${pn(x)}·${pn(v[i])}`).join(" + ")} = ${nm(dot)}</span>${dot === 0 ? ". Das Skalarprodukt ist 0: <i>u</i> und <i>v</i> stehen senkrecht aufeinander." : "."}</li>
-        <li><span class="m">|<i>u</i>| = ${SQ(nu2)} ≈ ${fmt(Math.sqrt(nu2), 3)}</span>, <span class="m">|<i>v</i>| = ${SQ(nv2)} ≈ ${fmt(Math.sqrt(nv2), 3)}</span>.</li>
-        <li><span class="m">cos φ = ${F("<i>u</i> · <i>v</i>", "|<i>u</i>| · |<i>v</i>|")} = ${F(nm(dot), `${fmt(Math.sqrt(nu2), 3)} · ${fmt(Math.sqrt(nv2), 3)}`)} = ${fmt(cos, 4)}</span>, also <span class="m">φ ≈ ${fmt(ang, 2)}°</span>.</li></ol>`
     };
   }
 }
@@ -841,21 +841,6 @@ const QUIZ_STAT = [
   ["Ein Schätzer θ̂ heißt erwartungstreu, wenn …", ["E(θ̂) = θ gilt.", "Var(θ̂) = 0 gilt.", "θ̂ immer gleich θ ist.", "θ̂ normalverteilt ist."], "Im Mittel trifft der Schätzer den wahren Wert. Beispiel: s² mit Nenner n − 1 ist erwartungstreu für σ²."],
   ["Der Standardfehler von x̄ ist …", ["σ / √n", "σ / n", "σ² / n", "√σ / n"], "Var(x̄) = σ²/n, die Wurzel davon ist der Standardfehler σ/√n."],
   ["„H₀ wird nicht abgelehnt“ bedeutet …", ["Die Daten liefern keinen ausreichenden Beleg gegen H₀.", "H₀ ist bewiesen.", "H₁ ist widerlegt.", "Ein Fehler 1. Art liegt vor."], "Ein Test kann H₀ nur ablehnen oder beibehalten. Beibehalten ist kein Beweis, oft fehlt einfach Power."]
-];
-const QUIZ_LIN = [
-  ["A ist 3×2, B ist 2×4. Welches Format hat AB?", ["3×4", "2×2", "4×3", "Das Produkt ist nicht definiert."], "Innere Dimensionen (2 und 2) müssen passen, das Ergebnis hat die äußeren: 3×4."],
-  ["Welche Aussage über Determinanten gilt immer?", ["det(AB) = det(A) · det(B)", "det(A + B) = det(A) + det(B)", "det(2A) = 2 · det(A) für 3×3-Matrizen", "det(A) = 0 für jede symmetrische Matrix"], "Die Determinante ist multiplikativ, aber nicht additiv. Für 3×3 gilt det(2A) = 2³ · det(A) = 8 · det(A)."],
-  ["Eine quadratische Matrix A ist genau dann invertierbar, wenn …", ["det(A) ≠ 0", "alle Einträge ≠ 0 sind", "A symmetrisch ist", "Spur(A) ≠ 0"], "Äquivalent dazu: voller Rang, Kern = {0}, 0 ist kein Eigenwert."],
-  ["Das LGS Ax = b mit A (3×3) hat rang(A) = 2 und rang(A|b) = 2. Wie viele Lösungen gibt es?", ["Unendlich viele (eine freie Variable)", "Genau eine", "Keine", "Genau zwei"], "rang(A) = rang(A|b): lösbar. 3 − 2 = 1 freier Parameter."],
-  ["Was sind die Eigenwerte einer oberen Dreiecksmatrix?", ["Die Diagonalelemente", "Die Einträge der ersten Zeile", "Immer 0 und 1", "Die Zeilensummen"], "det(A − λE) ist bei Dreiecksmatrizen das Produkt der Diagonale (aᵢᵢ − λ)."],
-  ["Die Summe der Eigenwerte einer Matrix ist gleich …", ["der Spur", "der Determinante", "dem Rang", "der größten Zeilensumme"], "Summe der Eigenwerte = Spur, Produkt der Eigenwerte = Determinante."],
-  ["Für Matrizen gilt (AB)ᵀ = …", ["BᵀAᵀ", "AᵀBᵀ", "AB", "BA"], "Beim Transponieren dreht sich die Reihenfolge um, genau wie beim Invertieren: (AB)⁻¹ = B⁻¹A⁻¹."],
-  ["Zwei Vektoren u, v ≠ 0 sind orthogonal genau dann, wenn …", ["u · v = 0", "|u| = |v|", "u = −v", "u × v = 0"], "cos φ = u·v / (|u||v|) = 0 heißt φ = 90°. Ein Kreuzprodukt von 0 bedeutet dagegen parallel."],
-  ["A ist eine 4×6-Matrix mit Rang 3. Welche Dimension hat der Kern?", ["3", "1", "2", "6"], "Dimensionsformel: dim Kern = Anzahl der Spalten − Rang = 6 − 3 = 3."],
-  ["Ist die Matrixmultiplikation kommutativ?", ["Nein, im Allgemeinen gilt AB ≠ BA.", "Ja, immer.", "Nur für 2×2-Matrizen.", "Nur, wenn beide Determinanten 1 sind."], "Beispiel: Erst drehen, dann spiegeln ergibt etwas anderes als erst spiegeln, dann drehen."],
-  ["Welche Determinante hat eine Drehmatrix im ℝ²?", ["1", "0", "−1", "Das hängt vom Winkel ab."], "cos²α + sin²α = 1. Drehungen erhalten Fläche und Orientierung."],
-  ["Was bewirkt das Vertauschen zweier Zeilen bei der Determinante?", ["Das Vorzeichen ändert sich.", "Nichts.", "Sie wird 0.", "Sie verdoppelt sich."], "Das Addieren eines Vielfachen einer Zeile zu einer anderen lässt die Determinante dagegen unverändert."],
-  ["Die Vektoren v₁, v₂, v₃ ∈ ℝ³ sind linear unabhängig genau dann, wenn …", ["die Matrix mit diesen Spalten Rang 3 hat.", "keiner davon der Nullvektor ist.", "sie paarweise verschieden sind.", "ihre Summe der Nullvektor ist."], "Vollständiger Rang bedeutet: Nur die triviale Kombination ergibt den Nullvektor. Gleichwertig: det ≠ 0."]
 ];
 
 /* ---------- Theorie ---------- */
@@ -1005,30 +990,1054 @@ TH.eig = `
     <li>Im Werkzeug unten sind die Eigenrichtungen gestrichelt: Vektoren darauf bleiben auf ihrer Geraden.</li>
   </ul>`;
 
+/* ---------- Aufgaben: Zufallsvariablen & Verteilungen (Skripte MS02) ---------- */
+function binom(n, k) { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return Math.round(r); }
+function fact(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+const pBin = (x, n, p) => binom(n, x) * p ** x * (1 - p) ** (n - x);
+const pHyp = (x, N, S, n) => binom(S, x) * binom(N - S, n - x) / binom(N, n);
+const pPoi = (x, l) => Math.exp(-l + x * Math.log(l) - lgamma(x + 1));
+const pGeo = (x, p) => (1 - p) ** x * p;
+const BC = (n, k) => `<span class="binom"><span class="pa">(</span><span class="bc"><span>${n}</span><span>${k}</span></span><span class="pa">)</span></span>`;
+const fmtD = x => { const s = String(+x.toFixed(4)).replace(".", ","); return s.startsWith("-") ? "−" + s.slice(1) : s; };
+const fmtI = x => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+const X_ = "<i>X</i>";
+
+function genZV() {
+  const start = rnd(0, 2), m = rnd(4, 5), d = pick([10, 12, 20, 36]);
+  const xs = Array.from({ length: m }, (_, i) => start + i);
+  const cuts = shuffle(Array.from({ length: d - 1 }, (_, i) => i + 1)).slice(0, m - 1).sort((a, b) => a - b);
+  const w = [...cuts, d].map((c, i, arr) => c - (i ? arr[i - 1] : 0));
+  const sx = xs.reduce((s, x, i) => s + x * w[i], 0), sx2 = xs.reduce((s, x, i) => s + x * x * w[i], 0);
+  const mu = new Fr(sx, d), ex2 = new Fr(sx2, d), v = ex2.sub(mu.mul(mu));
+  const x0 = pick(xs.slice(0, -1)) + (Math.random() < 0.4 ? 0.5 : 0), x0s = fmt(x0, x0 % 1 ? 1 : 0);
+  const fx = w.map(k => new Fr(k, d)), F0 = new Fr(xs.reduce((s, x, i) => s + (x <= x0 ? w[i] : 0), 0), d);
+  const ctx = pick(["die Anzahl der Reklamationen pro Tag in einem Onlineshop", "die Anzahl defekter Teile in einer Kiste", "die Anzahl der Kundenanrufe pro Viertelstunde"]);
+  return {
+    prompt: `<p>Die Zufallsvariable ${X_} beschreibt ${ctx}. Ihre Massenfunktion lautet:</p>
+      <div class="tbl-wrap"><table class="qt"><tbody><tr><th><i>x<sub>i</sub></i></th>${xs.map(x => `<td>${x}</td>`).join("")}</tr><tr><th><i>f</i>(<i>x<sub>i</sub></i>)</th>${fx.map(f => `<td>${f}</td>`).join("")}</tr></tbody></table></div>
+      <p>Berechne Erwartungswert, Varianz und den Wert der Verteilungsfunktion an der Stelle ${x0s}.</p>`,
+    fields: [
+      { label: `<span class="m">E(${X_}) = μ</span>`, ans: mu.val(), tol: 0.006 },
+      { label: `<span class="m">Var(${X_})</span>`, ans: v.val(), tol: 0.012 },
+      { label: `<span class="m"><i>F</i>(${x0s}) = P(${X_} ≤ ${x0s})</span>`, ans: F0.val(), tol: 0.002 }
+    ],
+    solution: `<ol class="steps">
+      <li><span class="m">E(${X_}) = Σ <i>x<sub>j</sub></i> <i>f</i>(<i>x<sub>j</sub></i>) = ${xs.map((x, i) => `${x}·${fx[i]}`).join(" + ")} = ${F(sx, d)}${mu.d > 1 ? ` ≈ ${fmt(mu.val(), 4)}` : ` = ${mu}`}</span></li>
+      <li>Vereinfachte Berechnung über <span class="m">E(${X_}²) = ${xs.map((x, i) => `${x}²·${fx[i]}`).join(" + ")} = ${F(sx2, d)}</span>.</li>
+      <li><span class="m">Var(${X_}) = E(${X_}²) − μ² = ${F(sx2, d)} − (${mu})² = ${v} ≈ ${fmt(v.val(), 4)}</span>, also <span class="m">σ ≈ ${fmt(Math.sqrt(v.val()), 4)}</span>.</li>
+      <li><span class="m"><i>F</i>(${x0s})</span> summiert alle Massen mit <span class="m"><i>x<sub>i</sub></i> ≤ ${x0s}</span>: <span class="m">${xs.filter(x => x <= x0).map(x => fx[xs.indexOf(x)]).join(" + ")} = ${F0} ≈ ${fmt(F0.val(), 4)}</span>.${x0 % 1 ? " Zwischen zwei Werten bleibt die Treppenfunktion konstant." : ""}</li></ol>`
+  };
+}
+function genTrafo() {
+  const v = pick([0, 1, 2]);
+  let mu, sg, a, b, intro;
+  if (v === 0) {
+    mu = rnd(30, 80); sg = rnd(4, 12); b = rnd(2, 6); const fix = rnd(3, 9) * 10; a = -fix;
+    intro = `Die tägliche Absatzmenge ${X_} (Stück) eines Kiosks hat <span class="m">E(${X_}) = ${mu}</span> und <span class="m">Var(${X_}) = ${sg * sg}</span>. Der Tagesgewinn in € ist <span class="m"><i>Y</i> = ${b}${X_} − ${fix}</span>.`;
+  } else if (v === 1) {
+    mu = rnd(20, 60); sg = rnd(3, 10); a = rnd(2, 9) * 5; b = rnd(2, 7) / 2;
+    intro = `Die Bearbeitungszeit ${X_} (Minuten) eines Auftrags hat <span class="m">E(${X_}) = ${mu}</span> und <span class="m">Var(${X_}) = ${sg * sg}</span>. Die Kosten in € sind <span class="m"><i>Y</i> = ${a} + ${fmtD(b)}${X_}</span> (Rüstkosten plus Minutensatz).`;
+  } else {
+    mu = rnd(12, 28); sg = rnd(2, 6); a = 32; b = 1.8;
+    intro = `Die Tageshöchsttemperatur ${X_} (°C) im Juli hat <span class="m">E(${X_}) = ${mu}</span> und <span class="m">Var(${X_}) = ${sg * sg}</span>. In Fahrenheit gilt <span class="m"><i>Y</i> = 32 + 1,8${X_}</span>.`;
+  }
+  const x = mu + pick([-1, 1]) * rnd(1, 2 * sg);
+  const EY = a + b * mu, VY = b * b * sg * sg, z = (x - mu) / sg;
+  return {
+    prompt: `<p>${intro}</p><p>Berechne Erwartungswert, Varianz und Standardabweichung von <i>Y</i>. Gib außerdem den standardisierten Wert <i>z</i> an, wenn an einem Tag <span class="m">${X_} = ${x}</span> beobachtet wird.</p>`,
+    fields: [
+      { label: `<span class="m">E(<i>Y</i>)</span>`, ans: EY, tol: 0.011 },
+      { label: `<span class="m">Var(<i>Y</i>)</span>`, ans: VY, tol: 0.011 },
+      { label: `<span class="m">σ<sub><i>Y</i></sub></span>`, ans: Math.abs(b) * sg, tol: 0.011 },
+      { label: `<span class="m"><i>z</i></span> für ${X_} = ${x}`, ans: z, tol: 0.006 }
+    ],
+    solution: `<ol class="steps">
+      <li><span class="m">E(<i>a</i> + <i>b</i>${X_}) = <i>a</i> + <i>b</i>·E(${X_}) = ${nm(a)} + ${fmtD(b)}·${mu} = ${fmtD(EY)}</span></li>
+      <li><span class="m">Var(<i>a</i> + <i>b</i>${X_}) = <i>b</i>²·Var(${X_}) = ${fmtD(b)}²·${sg * sg} = ${fmtD(VY)}</span>. Die Verschiebung <i>a</i> ändert die Streuung nicht.</li>
+      <li><span class="m">σ<sub><i>Y</i></sub> = |<i>b</i>|·σ<sub><i>X</i></sub> = ${fmtD(Math.abs(b))}·${sg} = ${fmtD(Math.abs(b) * sg)}</span></li>
+      <li><span class="m"><i>z</i> = ${F(`<i>x</i> − μ`, "σ")} = ${F(`${x} − ${mu}`, sg)} = ${fmt(z, 3)}</span>. Der Wert liegt ${fmt(Math.abs(z), 2)} Standardabweichungen ${z > 0 ? "über" : "unter"} dem Erwartungswert.</li></ol>`
+  };
+}
+function genTsch() {
+  for (;;) {
+    const mu = rnd(8, 40), vr = pick([2, 3, 4, 5, 6, 8, 9, 10, 12, 16, 25]), sg = Math.sqrt(vr), c = rnd(2, 12), k = c / sg;
+    if (k < 1.2 || k > 4) continue;
+    const inside = Math.random() < 0.5, bound = inside ? 1 - 1 / (k * k) : 1 / (k * k);
+    const ctx = pick(["die Anzahl der Kundenreklamationen pro Woche", "die tägliche Wartezeit an einer Hotline in Minuten", "der Wochenumsatz einer Filiale in Tausend €"]);
+    return {
+      prompt: `<p>Für ${ctx} (Zufallsvariable ${X_}) sind nur <span class="m">E(${X_}) = ${mu}</span> und <span class="m">Var(${X_}) = ${vr}</span> bekannt, die Verteilung nicht.</p>
+        <p>Schätze mit der Tschebyschev-Ungleichung ab: ${inside ? `<span class="m">P(${mu - c} &lt; ${X_} &lt; ${mu + c}) ≥ ?</span>` : `<span class="m">P(${X_} ≤ ${mu - c} oder ${X_} ≥ ${mu + c}) ≤ ?</span>`}</p>`,
+      fields: [
+        { label: `<span class="m"><i>k</i></span>`, ans: k, tol: 0.006 },
+        { label: inside ? "untere Schranke" : "obere Schranke", ans: bound, tol: 0.003 }
+      ],
+      solution: `<ol class="steps">
+        <li>Die Grenzen liegen symmetrisch im Abstand <span class="m"><i>c</i> = ${c}</span> um <span class="m">μ = ${mu}</span>. Mit <span class="m">σ = ${SQ(vr)} ≈ ${fmt(sg, 4)}</span> gilt <span class="m"><i>k</i> = ${F("<i>c</i>", "σ")} = ${fmt(k, 4)}</span>.</li>
+        <li>${inside ? `<span class="m">P(μ − <i>k</i>σ &lt; ${X_} &lt; μ + <i>k</i>σ) ≥ 1 − ${F(1, "<i>k</i>²")} = 1 − ${F(1, fmt(k * k, 4))} = ${fmt(bound, 4)}</span>` : `<span class="m">P(|${X_} − μ| ≥ <i>k</i>σ) ≤ ${F(1, "<i>k</i>²")} = ${F(1, fmt(k * k, 4))} = ${fmt(bound, 4)}</span>`}</li>
+        <li>Die Schranke gilt für jede Verteilung mit diesem Erwartungswert und dieser Varianz.</li></ol>`
+    };
+  }
+}
+function genKombi() {
+  const v = pick(["perm", "var", "comb", "lotto", "urne"]);
+  if (v === "perm") {
+    const n = rnd(4, 9);
+    return {
+      prompt: `<p>In einem Seminar halten ${n} Studierende je ein Referat. In wie vielen verschiedenen Reihenfolgen können die Referate gehalten werden?</p>`,
+      fields: [{ label: "Anzahl", ans: fact(n), tol: 0.5 }],
+      solution: `<ol class="steps"><li>Alle ${n} Elemente sind verschieden und werden angeordnet: Permutationen, <span class="m"><sub>${n}</sub><i>P</i> = ${n}!</span>.</li><li><span class="m">${n}! = ${Array.from({ length: n }, (_, i) => i + 1).join(" · ")} = ${fmtI(fact(n))}</span></li></ol>`
+    };
+  }
+  if (v === "var") {
+    const n = rnd(6, 12), k = 3, r = fact(n) / fact(n - k);
+    const txt = pick([`Beim 100-Meter-Finale starten ${n} Sprinter. Wie viele Möglichkeiten gibt es für die Vergabe von Gold, Silber und Bronze?`, `Aus ${n} Vereinsmitgliedern werden Vorsitz, Stellvertretung und Kasse besetzt (jede Person höchstens ein Amt). Wie viele Besetzungen gibt es?`]);
+    return {
+      prompt: `<p>${txt}</p>`,
+      fields: [{ label: "Anzahl", ans: r, tol: 0.5 }],
+      solution: `<ol class="steps"><li>Es werden 3 aus ${n} ausgewählt, und die Anordnung zählt: <span class="m"><sub>${n}</sub><i>V</i><sub>3</sub> = ${F(`${n}!`, `(${n} − 3)!`)}</span>.</li><li><span class="m">= ${n} · ${n - 1} · ${n - 2} = ${fmtI(r)}</span></li></ol>`
+    };
+  }
+  if (v === "comb") {
+    const n = rnd(8, 20), k = rnd(2, 5), r = binom(n, k);
+    return {
+      prompt: `<p>Aus ${n} Mitarbeitenden soll ein Ausschuss mit ${k} gleichberechtigten Mitgliedern gebildet werden. Wie viele verschiedene Ausschüsse sind möglich?</p>`,
+      fields: [{ label: "Anzahl", ans: r, tol: 0.5 }],
+      solution: `<ol class="steps"><li>Die Anordnung zählt nicht: <span class="m"><sub>${n}</sub><i>C</i><sub>${k}</sub> = ${BC(n, k)} = ${F(`${n}!`, `${k}! · ${n - k}!`)}</span>.</li><li><span class="m">= ${F(Array.from({ length: k }, (_, i) => n - i).join(" · "), Array.from({ length: k }, (_, i) => i + 1).join(" · "))} = ${fmtI(r)}</span></li></ol>`
+    };
+  }
+  if (v === "lotto") {
+    const x = pick([3, 4, 5]), c = binom(6, x) * binom(43, 6 - x), p = c / 13983816;
+    return {
+      prompt: `<p>Beim Lotto „6 aus 49“ werden 6 Zahlen gezogen. Wie viele Tipps haben genau <b>${x} Richtige</b>, und wie groß ist die Wahrscheinlichkeit dafür?</p>`,
+      fields: [
+        { label: `Anzahl der Tipps mit ${x} Richtigen`, ans: c, tol: 0.5 },
+        { label: "Wahrscheinlichkeit", ans: p, check: val => Math.abs(val - p) <= Math.max(2e-7, p * 0.01) }
+      ],
+      solution: `<ol class="steps"><li>${x} der 6 Richtigen und ${6 - x} der 43 Falschen: <span class="m">${BC(6, x)} · ${BC(43, 6 - x)} = ${binom(6, x)} · ${fmtI(binom(43, 6 - x))} = ${fmtI(c)}</span>.</li>
+        <li>Alle Tipps: <span class="m">${BC(49, 6)} = 13 983 816</span>. Wahrscheinlichkeit: <span class="m">${F(fmtI(c), "13 983 816")} ≈ ${p < 0.001 ? p.toExponential(3).replace(".", ",") : fmt(p, 5)}</span>.</li></ol>`
+    };
+  }
+  const N = rnd(8, 14), S = rnd(3, N - 3), n = rnd(3, Math.min(6, N - 2)), x = rnd(Math.max(1, n - (N - S)), Math.min(n, S));
+  const g = binom(S, x) * binom(N - S, n - x), m = binom(N, n);
+  return {
+    prompt: `<p>Eine Urne enthält ${N} Kugeln, davon ${S} schwarze und ${N - S} weiße. Es werden ${n} Kugeln ohne Zurücklegen gezogen. Wie viele Ziehungen enthalten genau ${x} schwarze Kugeln, und wie groß ist die Wahrscheinlichkeit dafür?</p>`,
+    fields: [
+      { label: "günstige Ausgänge <i>g</i>", ans: g, tol: 0.5 },
+      { label: "mögliche Ausgänge <i>m</i>", ans: m, tol: 0.5 },
+      { label: `<span class="m">P(${X_} = ${x}) = <i>g</i>/<i>m</i></span>`, ans: g / m, tol: 0.0012 }
+    ],
+    solution: `<ol class="steps"><li>Günstig: ${x} von ${S} schwarzen und ${n - x} von ${N - S} weißen: <span class="m">${BC(S, x)} · ${BC(N - S, n - x)} = ${binom(S, x)} · ${binom(N - S, n - x)} = ${g}</span>.</li>
+      <li>Möglich: <span class="m">${BC(N, n)} = ${m}</span>.</li><li><span class="m">P = ${F(g, m)} ≈ ${fmt(g / m, 4)}</span> (Laplace: günstige durch mögliche Ausgänge).</li></ol>`
+  };
+}
+function genBinomA() {
+  const v = pick(["wuerfel", "urne", "kredit", "ausschuss"]);
+  let n, p, pS, qS, intro;
+  if (v === "wuerfel") { n = rnd(4, 10); p = 1 / 6; pS = "1/6"; qS = "5/6"; intro = `Ein fairer Würfel wird ${n}-mal geworfen. ${X_} ist die Anzahl der Sechsen.`; }
+  else if (v === "urne") { const N = pick([10, 20, 25]); const R = rnd(2, N / 2); n = rnd(3, 8); p = R / N; pS = fmtD(p); qS = fmtD(1 - p); intro = `In einer Urne liegen ${N} Kugeln, davon ${R} rote. Es werden ${n} Kugeln <b>mit Zurücklegen</b> gezogen. ${X_} ist die Anzahl der roten Kugeln.`; }
+  else if (v === "kredit") { n = rnd(8, 20); p = pick([0.02, 0.05, 0.1]); pS = fmtD(p); qS = fmtD(1 - p); intro = `Eine Bank vergibt ${n} Kredite. Jeder fällt unabhängig mit Wahrscheinlichkeit ${pS} aus. ${X_} ist die Anzahl der Ausfälle.`; }
+  else { n = rnd(5, 15); p = pick([0.1, 0.15, 0.2, 0.25, 0.3]); pS = fmtD(p); qS = fmtD(1 - p); intro = `Eine Maschine produziert ein Teil mit Wahrscheinlichkeit ${pS} fehlerhaft, unabhängig von den anderen. Geprüft werden ${n} Teile. ${X_} ist die Anzahl fehlerhafter Teile.`; }
+  const x = rnd(1, Math.min(n, Math.max(2, Math.round(n * p) + 2))), x0 = pick([1, 2]);
+  const fxv = pBin(x, n, p), cum = Array.from({ length: x0 + 1 }, (_, i) => pBin(i, n, p));
+  const term = k => `${BC(n, k)}·(${pS})<sup>${k}</sup>·(${qS})<sup>${n - k}</sup>`;
+  return {
+    prompt: `<p>${intro}</p><p>Berechne <span class="m">P(${X_} = ${x})</span>, <span class="m">P(${X_} ≤ ${x0})</span>, den Erwartungswert und die Varianz.</p>`,
+    fields: [
+      { label: `<span class="m">P(${X_} = ${x})</span>`, ans: fxv, tol: 0.0012 },
+      { label: `<span class="m">P(${X_} ≤ ${x0})</span>`, ans: cum.reduce((a, b) => a + b, 0), tol: 0.0015 },
+      { label: `<span class="m">E(${X_})</span>`, ans: n * p, tol: 0.006 },
+      { label: `<span class="m">Var(${X_})</span>`, ans: n * p * (1 - p), tol: 0.006 }
+    ],
+    solution: `<ol class="steps">
+      <li>${X_} ist binomialverteilt mit <span class="m"><i>n</i> = ${n}</span> und <span class="m"><i>p</i> = ${pS}</span> (unabhängige Bernoulli-Experimente).</li>
+      <li><span class="m"><i>f</i><sub>Bi</sub>(${x}; ${pS}, ${n}) = ${term(x)} = ${binom(n, x)} · ${fmt(p ** x, 5)} · ${fmt((1 - p) ** (n - x), 5)} ≈ ${fmt(fxv, 4)}</span></li>
+      <li><span class="m">P(${X_} ≤ ${x0}) = ${cum.map((_, i) => `<i>f</i>(${i})`).join(" + ")} = ${cum.map(c => fmt(c, 4)).join(" + ")} ≈ ${fmt(cum.reduce((a, b) => a + b, 0), 4)}</span></li>
+      <li><span class="m">E(${X_}) = <i>n</i><i>p</i> = ${fmt(n * p, 4)}</span>, <span class="m">Var(${X_}) = <i>n</i><i>p</i>(1 − <i>p</i>) = ${fmt(n * p * (1 - p), 4)}</span></li></ol>`
+  };
+}
+function genHyper() {
+  const N = rnd(10, 30), S = rnd(3, Math.floor(N / 2)), n = rnd(3, Math.min(8, N - 2));
+  const x = rnd(Math.max(1, n - (N - S)), Math.min(n, S, 4));
+  const p = S / N, Kf = (N - n) / (N - 1), fx = pHyp(x, N, S, n);
+  const intro = pick([
+    `Eine Urne enthält ${N} Kugeln, davon ${S} schwarze. Es werden ${n} Kugeln <b>ohne Zurücklegen</b> gezogen. ${X_} ist die Anzahl der schwarzen Kugeln.`,
+    `Eine Lieferung besteht aus ${N} Teilen, davon sind ${S} defekt. Die Wareneingangskontrolle zieht ${n} Teile <b>ohne Zurücklegen</b>. ${X_} ist die Anzahl defekter Teile in der Stichprobe.`
+  ]);
+  return {
+    prompt: `<p>${intro}</p><p>Berechne <span class="m">P(${X_} = ${x})</span>, den Erwartungswert, den Korrekturfaktor und die Varianz.</p>`,
+    fields: [
+      { label: `<span class="m">P(${X_} = ${x})</span>`, ans: fx, tol: 0.0012 },
+      { label: `<span class="m">E(${X_})</span>`, ans: n * p, tol: 0.006 },
+      { label: `Korrekturfaktor <span class="m"><i>K<sub>f</sub></i></span>`, ans: Kf, tol: 0.002 },
+      { label: `<span class="m">Var(${X_})</span>`, ans: n * p * (1 - p) * Kf, tol: 0.006 }
+    ],
+    solution: `<ol class="steps">
+      <li>Ziehen ohne Zurücklegen: hypergeometrisch mit <span class="m"><i>N</i> = ${N}</span>, <span class="m"><i>S</i> = ${S}</span>, <span class="m"><i>n</i> = ${n}</span>.</li>
+      <li><span class="m"><i>f</i><sub>Hy</sub>(${x}; ${N}, ${S}, ${n}) = ${F(`${BC(S, x)} · ${BC(N - S, n - x)}`, BC(N, n))} = ${F(`${binom(S, x)} · ${binom(N - S, n - x)}`, fmtI(binom(N, n)))} ≈ ${fmt(fx, 4)}</span></li>
+      <li><span class="m"><i>p</i> = <i>S</i>/<i>N</i> = ${fmt(p, 4)}</span>, <span class="m">E(${X_}) = <i>n</i><i>p</i> = ${fmt(n * p, 4)}</span></li>
+      <li><span class="m"><i>K<sub>f</sub></i> = ${F("<i>N</i> − <i>n</i>", "<i>N</i> − 1")} = ${F(N - n, N - 1)} = ${fmt(Kf, 4)}</span>, <span class="m">Var(${X_}) = <i>n</i><i>p</i>(1 − <i>p</i>)·<i>K<sub>f</sub></i> = ${fmt(n * p * (1 - p), 4)} · ${fmt(Kf, 4)} = ${fmt(n * p * (1 - p) * Kf, 4)}</span>. Das ist weniger als bei der Binomialverteilung.</li></ol>`
+  };
+}
+function genPois() {
+  if (Math.random() < 0.4) {
+    const v = pick(["roulette", "kredit"]);
+    let n, p, intro;
+    if (v === "roulette") { n = pick([100, 150, 200, 250, 300]); p = 1 / 37; intro = `Ein Spieler setzt beim Roulette ${n}-mal auf die Zahl 17 (Gewinnwahrscheinlichkeit 1/37 pro Spiel).`; }
+    else { n = pick([500, 800, 1000, 1500]); p = pick([0.004, 0.005, 0.008, 0.01]); intro = `Ein Portfolio enthält ${fmtI(n)} Kredite mit einheitlicher, unabhängiger Ausfallwahrscheinlichkeit ${fmtD(p)} pro Jahr.`; }
+    const l = n * p, x = rnd(Math.max(0, Math.round(l) - 3), Math.round(l) + 3), fx = pPoi(x, l);
+    return {
+      prompt: `<p>${intro} Nähere die Binomialverteilung durch eine Poisson-Verteilung an.</p><p>Bestimme λ und die Wahrscheinlichkeit für genau ${x} ${v === "roulette" ? "Gewinne" : "Ausfälle"}.</p>`,
+      fields: [
+        { label: "λ", ans: l, tol: 0.003 },
+        { label: `<span class="m">P(${X_} = ${x})</span>`, ans: fx, tol: 0.0012 }
+      ],
+      solution: `<ol class="steps"><li><i>n</i> groß, <i>p</i> klein: <span class="m">λ = <i>n</i><i>p</i> = ${fmt(l, 4)}</span>.</li>
+        <li><span class="m"><i>f</i><sub>Po</sub>(${x}; λ) = ${F(`λ<sup>${x}</sup>`, `${x}!`)} <i>e</i><sup>−λ</sup> = ${F(`${fmt(l, 4)}<sup>${x}</sup>`, fmtI(fact(x)))} · <i>e</i><sup>−${fmt(l, 4)}</sup> ≈ ${fmt(fx, 4)}</span></li>
+        <li>Zum Vergleich exakt binomial: <span class="m"><i>f</i><sub>Bi</sub>(${x}; ${fmtD(p)}, ${n}) ≈ ${fmt(pBin(x, n, p), 4)}</span>. Die Näherung ist sehr gut.</li></ol>`
+    };
+  }
+  const l = pick([1.5, 2, 2.5, 3, 4, 5]);
+  const ctx = pick([["E-Mail-Bestellungen pro Tag auf einem Server", "Bestellungen"], ["Kreditausfälle pro Jahr in einem Portfolio", "Ausfälle"], ["Kunden pro 10 Minuten an einer Kasse", "Kunden"]]);
+  const x = rnd(0, Math.round(l) + 3), c2 = [0, 1, 2].map(i => pPoi(i, l)), P2 = c2.reduce((a, b) => a + b, 0);
+  return {
+    prompt: `<p>Die Anzahl der ${ctx[0]} ist Poisson-verteilt mit <span class="m">λ = ${fmtD(l)}</span>.</p><p>Berechne <span class="m">P(${X_} = ${x})</span>, <span class="m">P(${X_} ≤ 2)</span> und die Wahrscheinlichkeit für mindestens 3 ${ctx[1]}.</p>`,
+    fields: [
+      { label: `<span class="m">P(${X_} = ${x})</span>`, ans: pPoi(x, l), tol: 0.0012 },
+      { label: `<span class="m">P(${X_} ≤ 2)</span>`, ans: P2, tol: 0.0015 },
+      { label: `<span class="m">P(${X_} ≥ 3)</span>`, ans: 1 - P2, tol: 0.0015 }
+    ],
+    solution: `<ol class="steps">
+      <li><span class="m"><i>f</i><sub>Po</sub>(${x}; ${fmtD(l)}) = ${F(`${fmtD(l)}<sup>${x}</sup>`, `${x}!`)} <i>e</i><sup>−${fmtD(l)}</sup> ≈ ${fmt(pPoi(x, l), 4)}</span></li>
+      <li><span class="m">P(${X_} ≤ 2) = <i>f</i>(0) + <i>f</i>(1) + <i>f</i>(2) = ${c2.map(c => fmt(c, 4)).join(" + ")} ≈ ${fmt(P2, 4)}</span></li>
+      <li>Gegenwahrscheinlichkeit: <span class="m">P(${X_} ≥ 3) = 1 − P(${X_} ≤ 2) ≈ ${fmt(1 - P2, 4)}</span>. Erwartungswert und Varianz sind beide λ = ${fmtD(l)}.</li></ol>`
+  };
+}
+function genGeo() {
+  const v = pick(["taxi", "wuerfel", "akquise"]);
+  let p, pS, intro;
+  if (v === "taxi") { p = pick([0.1, 0.2, 0.25, 0.3]); pS = fmtD(p); intro = `Innerhalb jeder Minute kommt mit Wahrscheinlichkeit ${pS} ein freies Taxi vorbei. ${X_} ist die Anzahl der erfolglos verstrichenen Minuten, bevor eines kommt.`; }
+  else if (v === "wuerfel") { p = 1 / 6; pS = "1/6"; intro = `Es wird gewürfelt, bis die erste Sechs fällt. ${X_} ist die Anzahl der Würfe ohne Sechs davor.`; }
+  else { p = pick([0.1, 0.15, 0.2]); pS = fmtD(p); intro = `Ein Vertriebler schließt jedes Telefonat unabhängig mit Wahrscheinlichkeit ${pS} ab. ${X_} ist die Anzahl der Telefonate ohne Abschluss vor dem ersten Abschluss.`; }
+  const q = 1 - p, x = rnd(0, 5), x0 = rnd(1, 5);
+  return {
+    prompt: `<p>${intro}</p><p>Berechne <span class="m">P(${X_} = ${x})</span>, <span class="m">P(${X_} ≤ ${x0})</span>, den Erwartungswert und die Standardabweichung.</p>`,
+    fields: [
+      { label: `<span class="m">P(${X_} = ${x})</span>`, ans: q ** x * p, tol: 0.0012 },
+      { label: `<span class="m">P(${X_} ≤ ${x0})</span>`, ans: 1 - q ** (x0 + 1), tol: 0.0015 },
+      { label: `<span class="m">E(${X_})</span>`, ans: q / p, tol: 0.011 },
+      { label: "σ", ans: Math.sqrt(q) / p, tol: 0.011 }
+    ],
+    solution: `<ol class="steps">
+      <li>Geometrisch verteilt mit <span class="m"><i>p</i> = ${pS}</span>, <span class="m"><i>q</i> = 1 − <i>p</i> = ${p === 1 / 6 ? "5/6" : fmtD(q)}</span>.</li>
+      <li><span class="m"><i>f</i><sub>Geo</sub>(${x}; <i>p</i>) = <i>q</i><sup>${x}</sup><i>p</i> = ${fmt(q ** x * p, 4)}</span></li>
+      <li><span class="m"><i>F</i><sub>Geo</sub>(${x0}) = 1 − <i>q</i><sup>${x0 + 1}</sup> = 1 − ${fmt(q ** (x0 + 1), 4)} = ${fmt(1 - q ** (x0 + 1), 4)}</span></li>
+      <li><span class="m">E(${X_}) = <i>q</i>/<i>p</i> = ${fmt(q / p, 4)}</span>, <span class="m">σ = ${SQ("<i>q</i>")}/<i>p</i> = ${fmt(Math.sqrt(q) / p, 4)}</span></li></ol>`
+  };
+}
+function genStetig() {
+  if (Math.random() < 0.5) {
+    const T = pick([10, 12, 15, 20, 30]), t = rnd(1, T - 1);
+    return {
+      prompt: `<p>Ein Bus fährt laut Fahrplan alle ${T} Minuten. Ein Fahrgast kommt zu einem zufälligen Zeitpunkt an die Haltestelle. Die Wartezeit <i>T</i> ist rechteckverteilt auf <span class="m">[0, ${T}]</span>.</p><p>Wie groß ist die Wahrscheinlichkeit, länger als ${t} Minuten zu warten? Bestimme außerdem E(<i>T</i>) und σ<sub><i>T</i></sub>.</p>`,
+      fields: [
+        { label: `<span class="m">P(<i>T</i> &gt; ${t})</span>`, ans: 1 - t / T, tol: 0.002 },
+        { label: `<span class="m">E(<i>T</i>)</span>`, ans: T / 2, tol: 0.006 },
+        { label: `<span class="m">σ<sub><i>T</i></sub></span>`, ans: T / Math.sqrt(12), tol: 0.006 }
+      ],
+      solution: `<ol class="steps"><li><span class="m">P(<i>T</i> &gt; ${t}) = 1 − <i>F</i><sub>R</sub>(${t}) = 1 − ${F(`${t} − 0`, `${T} − 0`)} = ${fmt(1 - t / T, 4)}</span></li>
+        <li><span class="m">E(<i>T</i>) = ${F("<i>a</i> + <i>b</i>", 2)} = ${fmtD(T / 2)}</span>, <span class="m">Var(<i>T</i>) = ${F("(<i>b</i> − <i>a</i>)²", 12)} = ${fmt(T * T / 12, 4)}</span>, <span class="m">σ = ${fmt(T / Math.sqrt(12), 4)}</span></li></ol>`
+    };
+  }
+  const [mu, unit, what] = pick([[5000, "Stunden", "Lebensdauer einer Glühbirne"], [2000, "Stunden", "Laufzeit eines Lüfters bis zum Ausfall"], [8, "Jahre", "Nutzungsdauer einer Maschine"], [4, "Minuten", "Zeit zwischen zwei Kundenankünften"]]);
+  const a = mu * pick([0.25, 0.5, 0.75]), b = mu * pick([1.5, 2, 3]);
+  return {
+    prompt: `<p>Die ${what} ist exponentialverteilt mit Erwartungswert <span class="m">μ = ${fmtI(mu)}</span> ${unit}.</p><p>Bestimme λ, die Wahrscheinlichkeit für weniger als ${fmtI(a)} ${unit} und für mehr als ${fmtI(b)} ${unit}.</p>`,
+    fields: [
+      { label: "λ", ans: 1 / mu, check: v => Math.abs(v - 1 / mu) <= 0.005 / mu },
+      { label: `<span class="m">P(${X_} &lt; ${fmtI(a)})</span>`, ans: 1 - Math.exp(-a / mu), tol: 0.002 },
+      { label: `<span class="m">P(${X_} &gt; ${fmtI(b)})</span>`, ans: Math.exp(-b / mu), tol: 0.002 }
+    ],
+    solution: `<ol class="steps"><li><span class="m">λ = 1/μ = 1/${fmtI(mu)} = ${fmtD(1 / mu)}</span></li>
+      <li><span class="m">P(${X_} &lt; ${fmtI(a)}) = <i>F</i><sub>Ex</sub>(${fmtI(a)}) = 1 − <i>e</i><sup>−${fmtI(a)}/${fmtI(mu)}</sup> = 1 − <i>e</i><sup>−${fmtD(a / mu)}</sup> ≈ ${fmt(1 - Math.exp(-a / mu), 4)}</span></li>
+      <li><span class="m">P(${X_} &gt; ${fmtI(b)}) = 1 − <i>F</i><sub>Ex</sub>(${fmtI(b)}) = <i>e</i><sup>−${fmtD(b / mu)}</sup> ≈ ${fmt(Math.exp(-b / mu), 4)}</span></li></ol>`
+  };
+}
+function genNormal() {
+  const c = pick([{ t: "die Füllmenge einer Flasche in ml", mu: 500, s: [2, 6] }, { t: "die Körpergröße in cm", mu: 175, s: [6, 10] }, { t: "die erreichte Punktzahl in einer Klausur", mu: 60, s: [8, 14] }, { t: "die Zufallsvariable X", mu: rnd(3, 20), s: [2, 5] }]);
+  const sg = rnd(...c.s), mu = c.mu, v = pick(["int", "int", "right", "left", "quant"]);
+  const head = `<p>${X_} beschreibe ${c.t} und sei normalverteilt mit <span class="m">E(${X_}) = ${mu}</span> und <span class="m">Var(${X_}) = ${sg * sg}</span>.</p>`;
+  const zs = x => (x - mu) / sg;
+  const step = (x, n) => `<span class="m"><i>z</i><sub>${n}</sub> = ${F(`${x} − ${mu}`, sg)} = ${fmt(zs(x), 3)}</span>`;
+  if (v === "quant") {
+    const al = pick([0.01, 0.025, 0.05, 0.1]), z = invPhi(1 - al), cc = mu + z * sg;
+    return {
+      prompt: head + `<p>Welcher Wert <i>c</i> wird nur mit Wahrscheinlichkeit ${pct(al).replace(" %", "")} % überschritten, d. h. <span class="m">P(${X_} &gt; <i>c</i>) = ${fmtD(al)}</span>?</p>`,
+      fields: [{ label: `Quantil <span class="m"><i>z</i></span>`, ans: z, tol: 0.011 }, { label: `<span class="m"><i>c</i></span>`, ans: cc, tol: 0.012 * sg + 0.01 }],
+      solution: `<ol class="steps"><li><span class="m">P(${X_} ≤ <i>c</i>) = ${fmtD(1 - al)}</span>. In der Tafel: <span class="m"><i>F</i><sub>St</sub>(<i>z</i>) = ${fmtD(1 - al)}</span> für <span class="m"><i>z</i> = ${fmt(z, 3)}</span>.</li><li>Zurücktransformieren: <span class="m"><i>c</i> = μ + <i>z</i>σ = ${mu} + ${fmt(z, 3)} · ${sg} = ${fmt(cc, 2)}</span>.</li></ol>`
+    };
+  }
+  const a = Math.round(mu - uni(0.2, 2) * sg), b = Math.round(mu + uni(0.2, 2) * sg);
+  if (v === "int") {
+    const P = Phi(zs(b)) - Phi(zs(a));
+    return {
+      prompt: head + `<p>Berechne <span class="m">P(${a} &lt; ${X_} ≤ ${b})</span>.</p>`,
+      fields: [{ label: `<span class="m"><i>z</i><sub>a</sub></span>`, ans: zs(a), tol: 0.006 }, { label: `<span class="m"><i>z</i><sub>b</sub></span>`, ans: zs(b), tol: 0.006 }, { label: `<span class="m">P(${a} &lt; ${X_} ≤ ${b})</span>`, ans: P, tol: 0.005 }],
+      solution: `<ol class="steps"><li>Erst standardisieren mit <span class="m">σ = ${SQ(sg * sg)} = ${sg}</span>: ${step(a, "a")}, ${step(b, "b")}.</li>
+        <li><span class="m">P = <i>F</i><sub>St</sub>(${fmt(zs(b), 2)}) − <i>F</i><sub>St</sub>(${fmt(zs(a), 2)}) = ${fmt(Phi(zs(b)), 4)} − ${fmt(Phi(zs(a)), 4)} = ${fmt(P, 4)}</span></li>
+        <li>Für negative z: <span class="m"><i>F</i><sub>St</sub>(−<i>z</i>) = 1 − <i>F</i><sub>St</sub>(<i>z</i>)</span>.</li></ol>`
+    };
+  }
+  const x = v === "right" ? b : a, P = v === "right" ? 1 - Phi(zs(x)) : Phi(zs(x));
+  const ev = v === "right" ? `P(${X_} &gt; ${x})` : `P(${X_} ≤ ${x})`;
+  return {
+    prompt: head + `<p>Berechne <span class="m">${ev}</span>.</p>`,
+    fields: [{ label: `<span class="m"><i>z</i></span>`, ans: zs(x), tol: 0.006 }, { label: `<span class="m">${ev}</span>`, ans: P, tol: 0.005 }],
+    solution: `<ol class="steps"><li>${step(x, "")} (mit <span class="m">σ = ${SQ(sg * sg)} = ${sg}</span>).</li>
+      <li>${v === "right" ? `<span class="m">P(${X_} &gt; ${x}) = 1 − <i>F</i><sub>St</sub>(${fmt(zs(x), 2)}) = 1 − ${fmt(Phi(zs(x)), 4)} = ${fmt(P, 4)}</span>` : `<span class="m">P(${X_} ≤ ${x}) = <i>F</i><sub>St</sub>(${fmt(zs(x), 2)}) = ${fmt(P, 4)}</span>`}</li></ol>`
+  };
+}
+
+/* ---------- Werkzeug: Verteilungen ---------- */
+const DISTS = {
+  binom: { title: "Binomialverteilung", disc: true, x0: 3, note: "Binomialverteilung <i>f</i><sub>Bi</sub>(<i>x</i>; <i>p</i>, <i>n</i>). Der dunkle Balken ist P(X = x), alle eingefärbten Balken zusammen ergeben P(X ≤ x). Bei p = 0,5 ist sie symmetrisch.",
+    params: [["n", "<i>n</i>", 1, 40, 1, 10], ["p", "<i>p</i>", 0.01, 0.99, 0.01, 0.3]], pmf: (x, P) => pBin(x, P.n, P.p), sup: P => [0, P.n], mean: P => P.n * P.p, vr: P => P.n * P.p * (1 - P.p) },
+  hyper: { title: "Hypergeometrische Verteilung", disc: true, x0: 2, note: "Hypergeometrische Verteilung <i>f</i><sub>Hy</sub>(<i>x</i>; <i>N</i>, <i>S</i>, <i>n</i>). Vergrößere N bei festem Anteil S/N: Die Verteilung nähert sich der Binomialverteilung, der Korrekturfaktor geht gegen 1.",
+    params: [["N", "<i>N</i>", 2, 80, 1, 20], ["S", "<i>S</i>", 1, 79, 1, 8], ["n", "<i>n</i>", 1, 80, 1, 6]], fix: P => { P.S = Math.min(P.S, P.N - 1); P.n = Math.min(P.n, P.N); },
+    pmf: (x, P) => pHyp(x, P.N, P.S, P.n), sup: P => [Math.max(0, P.n - (P.N - P.S)), Math.min(P.n, P.S)], mean: P => P.n * P.S / P.N, vr: P => { const p = P.S / P.N; return P.N > 1 ? P.n * p * (1 - p) * (P.N - P.n) / (P.N - 1) : 0; } },
+  pois: { title: "Poisson-Verteilung", disc: true, x0: 4, note: "Poisson-Verteilung <i>f</i><sub>Po</sub>(<i>x</i>; λ). Erwartungswert und Varianz sind beide λ. Für kleine λ ist sie stark linkssteil.",
+    params: [["l", "λ", 0.1, 15, 0.1, 4]], pmf: (x, P) => pPoi(x, P.l), sup: P => [0, Math.ceil(P.l + 5 * Math.sqrt(P.l) + 3)], mean: P => P.l, vr: P => P.l },
+  geo: { title: "Geometrische Verteilung", disc: true, x0: 2, note: "Geometrische Verteilung <i>f</i><sub>Geo</sub>(<i>x</i>; <i>p</i>): Anzahl der Misserfolge vor dem ersten Erfolg. Die Massen fallen mit dem Faktor q = 1 − p.",
+    params: [["p", "<i>p</i>", 0.05, 0.9, 0.01, 0.2]], pmf: (x, P) => pGeo(x, P.p), sup: P => [0, Math.min(60, Math.ceil(Math.log(0.004) / Math.log(1 - P.p)))], mean: P => (1 - P.p) / P.p, vr: P => (1 - P.p) / P.p ** 2 },
+  rect: { title: "Rechteckverteilung", disc: false, a0: 0.45, b0: 0.85, note: "Rechteckverteilung auf [a, b]: konstante Dichte 1/(b − a). Die eingefärbte Fläche ist die Wahrscheinlichkeit für das gewählte Intervall.",
+    params: [["a", "<i>a</i>", 0, 20, 0.5, 0], ["b", "<i>b</i>", 1, 40, 0.5, 30]], fix: P => { if (P.b <= P.a) P.b = P.a + 1; },
+    pdf: (x, P) => (x >= P.a && x <= P.b ? 1 / (P.b - P.a) : 0), cdf: (x, P) => Math.min(1, Math.max(0, (x - P.a) / (P.b - P.a))), range: P => [P.a - (P.b - P.a) * 0.15, P.b + (P.b - P.a) * 0.15], mean: P => (P.a + P.b) / 2, vr: P => (P.b - P.a) ** 2 / 12 },
+  exp: { title: "Exponentialverteilung", disc: false, a0: 0, b0: 0.3, note: "Exponentialverteilung mit Dichte λe<sup>−λx</sup>. Der Erwartungswert ist 1/λ. Die Dichte schmiegt sich asymptotisch an die x-Achse.",
+    params: [["l", "λ", 0.05, 3, 0.05, 0.5]], pdf: (x, P) => (x < 0 ? 0 : P.l * Math.exp(-P.l * x)), cdf: (x, P) => (x < 0 ? 0 : 1 - Math.exp(-P.l * x)), range: P => [0, 6 / P.l], mean: P => 1 / P.l, vr: P => 1 / P.l ** 2 },
+  norm: { title: "Normalverteilung", disc: false, a0: 0.4583, b0: 0.5833, note: "Normalverteilung mit Erwartungswert μ und Standardabweichung σ. Voreingestellt ist das Skriptbeispiel E(X) = 5, Var(X) = 9 und P(4 &lt; X ≤ 7) ≈ 0,378.",
+    params: [["m", "μ", -20, 40, 0.5, 5], ["s", "σ", 0.5, 12, 0.5, 3]], pdf: (x, P) => phi((x - P.m) / P.s) / P.s, cdf: (x, P) => Phi((x - P.m) / P.s), range: P => [P.m - 4 * P.s, P.m + 4 * P.s], mean: P => P.m, vr: P => P.s ** 2 }
+};
+function niceStep(x) { const p = 10 ** Math.floor(Math.log10(x)), m = x / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+const decOf = step => (step >= 1 ? 0 : step >= 0.1 ? 1 : 2);
+function toolDist(el, id) {
+  const keys = id === "stetig" ? ["rect", "exp"] : [{ binom: "binom", hyper: "hyper", pois: "pois", geo: "geo", normal: "norm" }[id]];
+  let key = keys[0];
+  el.innerHTML = `${keys.length > 1 ? `<div class="ctl-row"><label class="ctl" for="ds-k"><span>Verteilung</span><select id="ds-k">${keys.map(k => `<option value="${k}">${DISTS[k].title}</option>`).join("")}</select></label></div>` : ""}
+    <p class="tool-note" id="ds-note"></p>
+    <div class="ctl-row" id="ds-params"></div>
+    <div class="canvas-wrap"><canvas id="ds-cv" role="img" aria-label="Verteilung mit markierter Wahrscheinlichkeit"></canvas></div>
+    <p class="readout-line" id="ds-out"></p>`;
+  const cv = $("#ds-cv", el);
+  const P = {};
+  function build() {
+    const D = DISTS[key];
+    $("#ds-note", el).innerHTML = D.note;
+    $("#ds-params", el).innerHTML = D.params.map(p => `<label class="ctl" for="ds-${p[0]}"><span>${p[1]} = <output id="ds-${p[0]}o"></output></span><input type="range" id="ds-${p[0]}" min="${p[2]}" max="${p[3]}" step="${p[4]}" value="${p[5]}"></label>`).join("") +
+      (D.disc ? `<label class="ctl" for="ds-x"><span><i>x</i> = <output id="ds-xo"></output></span><input type="range" id="ds-x" min="0" max="10" step="1" value="${D.x0}"></label>`
+        : `<label class="ctl" for="ds-a"><span>untere Grenze <i>a</i> = <output id="ds-ao"></output></span><input type="range" id="ds-a" min="0" max="1" step="0.0001" value="${D.a0}"></label><label class="ctl" for="ds-b"><span>obere Grenze <i>b</i> = <output id="ds-bo"></output></span><input type="range" id="ds-b" min="0" max="1" step="0.0001" value="${D.b0}"></label>`);
+    $("#ds-params", el).querySelectorAll("input").forEach(i => i.addEventListener("input", draw));
+    draw();
+  }
+  function draw() {
+    const D = DISTS[key];
+    D.params.forEach(p => { P[p[0]] = +$("#ds-" + p[0], el).value; });
+    if (D.fix) { D.fix(P); D.params.forEach(p => { $("#ds-" + p[0], el).value = P[p[0]]; }); }
+    D.params.forEach(p => { $(`#ds-${p[0]}o`, el).textContent = fmt(P[p[0]], decOf(p[4])); });
+    const { ctx, w, h } = setupCanvas(cv, 260);
+    const L = 12, R = 12, T = 14, B = 26;
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent");
+    ctx.font = MONO; ctx.textAlign = "center";
+    const mean = D.mean(P), vr = D.vr(P);
+    const stats = `<span class="m">E(${X_}) = ${fmt(mean, 3)}</span> · <span class="m">Var(${X_}) = ${fmt(vr, 3)}</span> · <span class="m">σ = ${fmt(Math.sqrt(vr), 3)}</span>`;
+    if (D.disc) {
+      const [lo, hi] = D.sup(P), xEl = $("#ds-x", el);
+      xEl.min = lo; xEl.max = hi;
+      const k = Math.min(hi, Math.max(lo, Math.round(+xEl.value))); xEl.value = k; $("#ds-xo", el).textContent = k;
+      const xs = []; for (let x = lo; x <= hi; x++) xs.push(x);
+      const ps = xs.map(x => D.pmf(x, P)), ymax = Math.max(...ps) * 1.12 || 1;
+      const bw = (w - L - R) / xs.length, Y = y => h - B - y / ymax * (h - T - B);
+      xs.forEach((x, i) => {
+        ctx.fillStyle = x <= k ? acc : muted; ctx.globalAlpha = x === k ? 1 : x < k ? 0.5 : 0.28;
+        ctx.fillRect(L + i * bw + bw * 0.14, Y(ps[i]), Math.max(1, bw * 0.72), Y(0) - Y(ps[i]));
+      });
+      ctx.globalAlpha = 1; ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+      const every = Math.max(1, Math.ceil(xs.length / Math.max(4, Math.floor((w - L - R) / 34))));
+      ctx.fillStyle = muted; xs.forEach((x, i) => { if ((x - lo) % every === 0 || x === k) { ctx.fillStyle = x === k ? ink : muted; ctx.fillText(String(x), L + (i + 0.5) * bw, h - 8); } });
+      const fk = D.pmf(k, P), Fk = xs.filter(x => x <= k).reduce((s, x) => s + D.pmf(x, P), 0);
+      $("#ds-out", el).innerHTML = `<span class="m">P(${X_} = ${k}) = ${fmt(fk, 4)}</span> · <span class="m">P(${X_} ≤ ${k}) = ${fmt(Fk, 4)}</span> · <span class="m">P(${X_} &gt; ${k}) = ${fmt(Math.max(0, 1 - Fk), 4)}</span><br>${stats}`;
+    } else {
+      const [lo, hi] = D.range(P);
+      let a = lo + (+$("#ds-a", el).value) * (hi - lo), b = lo + (+$("#ds-b", el).value) * (hi - lo);
+      if (a > b) [a, b] = [b, a];
+      const st = niceStep((hi - lo) / 8), dc = decOf(st / 5);
+      a = roundTo(a, dc); b = roundTo(b, dc);
+      $("#ds-ao", el).textContent = fmt(a, dc); $("#ds-bo", el).textContent = fmt(b, dc);
+      let ymax = 0; for (let i = 0; i <= 200; i++) ymax = Math.max(ymax, D.pdf(lo + (hi - lo) * i / 200, P)); ymax *= 1.12;
+      const X = x => L + (x - lo) / (hi - lo) * (w - L - R), Y = y => h - B - y / ymax * (h - T - B);
+      ctx.fillStyle = acc; ctx.globalAlpha = 0.4; shadeArea(ctx, x => D.pdf(x, P), Math.max(a, lo), Math.min(b, hi), X, Y); ctx.globalAlpha = 1;
+      ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+      ctx.fillStyle = muted;
+      for (let x = Math.ceil(lo / st) * st; x <= hi + 1e-9; x += st) ctx.fillText(fmt(x, decOf(st)), X(x), h - 8);
+      ctx.strokeStyle = ink; ctx.lineWidth = 2; strokeCurve(ctx, x => D.pdf(x, P), lo, hi, X, Y);
+      ctx.strokeStyle = acc; ctx.lineWidth = 1.5; [a, b].forEach(x => { ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), T); ctx.stroke(); });
+      const pr = D.cdf(b, P) - D.cdf(a, P);
+      $("#ds-out", el).innerHTML = `<span class="m">P(${fmt(a, dc)} &lt; ${X_} ≤ ${fmt(b, dc)}) = <i>F</i>(${fmt(b, dc)}) − <i>F</i>(${fmt(a, dc)}) = ${fmt(D.cdf(b, P), 4)} − ${fmt(D.cdf(a, P), 4)} = ${fmt(pr, 4)}</span><br>${stats}`;
+    }
+  }
+  if (keys.length > 1) $("#ds-k", el).addEventListener("change", e => { key = e.target.value; build(); });
+  watch(cv, draw);
+  build();
+}
+
+/* ---------- Aufgaben: Lineare Algebra (Skript MS02_01) ---------- */
+const colV = x => matHTML(x.map(e => [e]));
+function genVek() {
+  const v = pick(["ip", "ip", "pq", "waren"]);
+  if (v === "waren") {
+    const goods = ["Äpfel", "Bananen", "Kirschen", "Datteln"];
+    const x = goods.map(() => rnd(1, 9)), p = goods.map(() => rnd(2, 16) / 2);
+    const val = x.reduce((s, xi, i) => s + xi * p[i], 0);
+    return {
+      prompt: `<p>Du kaufst den Warenvektor <span class="m"><i>x</i> = (${x.join(", ")})</span>, also kg ${goods.join(", ")}. Die Preise pro kg stehen im Preisvektor <span class="m"><i>p</i> = (${p.map(fmtD).join("; ")})</span> in €.</p><p>Wie hoch ist der Gesamtwarenwert?</p>`,
+      fields: [{ label: `<span class="m"><i>p</i> · <i>x</i></span> in €`, ans: val, tol: 0.006 }],
+      solution: `<ol class="steps"><li>Inneres Produkt: Komponenten paarweise multiplizieren und addieren.</li><li><span class="m"><i>p</i> · <i>x</i> = ${p.map((q, i) => `${fmtD(q)}·${x[i]}`).join(" + ")} = ${fmtD(val)}</span> €. Das Ergebnis ist ein Skalar.</li></ol>`
+    };
+  }
+  if (v === "pq") {
+    const n = pick([2, 3]), P = Array.from({ length: n }, () => rnd(-5, 6)), Q = Array.from({ length: n }, () => rnd(-5, 6));
+    const a = Q.map((q, i) => q - P[i]), nn = a.reduce((s, x) => s + x * x, 0);
+    if (nn === 0) return genVek();
+    return {
+      prompt: `<p>Ein Vektor <i>a</i> beschreibt die Bewegung von <span class="m"><i>P</i> = (${P.map(nm).join(", ")})</span> nach <span class="m"><i>Q</i> = (${Q.map(nm).join(", ")})</span>. Bestimme <i>a</i> und seine Länge.</p>`,
+      fields: [{ label: `<span class="m"><i>a</i> = <i>PQ</i></span>`, type: "matrix", rows: n, cols: 1, ans: a.map(x => [x]), tol: 1e-9 }, { label: `<span class="m">‖<i>a</i>‖</span>`, ans: Math.sqrt(nn), tol: 0.006 }],
+      solution: `<ol class="steps"><li><span class="m"><i>a<sub>i</sub></i> = <i>q<sub>i</sub></i> − <i>p<sub>i</sub></i></span>: <span class="m"><i>a</i> = (${Q.map((q, i) => `${nm(q)} − ${pn(P[i])}`).join(", ")}) = (${a.map(nm).join(", ")})</span></li><li><span class="m">‖<i>a</i>‖ = ${SQ(a.map(x => `${pn(x)}²`).join(" + "))} = ${SQ(nn)} ≈ ${fmt(Math.sqrt(nn), 4)}</span></li></ol>`
+    };
+  }
+  for (;;) {
+    const n = pick([3, 3, 4]), a = Array.from({ length: n }, () => rnd(-4, 5));
+    let b;
+    if (n === 3 && Math.random() < 0.4) { const w = [rnd(-2, 2), rnd(-2, 2), rnd(-2, 2)]; b = [a[1] * w[2] - a[2] * w[1], a[2] * w[0] - a[0] * w[2], a[0] * w[1] - a[1] * w[0]]; }
+    else b = Array.from({ length: n }, () => rnd(-4, 5));
+    if (a.every(x => !x) || b.every(x => !x) || b.some(x => Math.abs(x) > 12)) continue;
+    const dot = a.reduce((s, x, i) => s + x * b[i], 0), na = a.reduce((s, x) => s + x * x, 0), nb = b.reduce((s, x) => s + x * x, 0);
+    return {
+      prompt: `<p>Gegeben sind <span class="m"><i>a</i> = (${a.map(nm).join(", ")})</span> und <span class="m"><i>b</i> = (${b.map(nm).join(", ")})</span>.</p><p>Berechne das innere Produkt und die Länge von <i>a</i>. Stehen die Vektoren orthogonal aufeinander?</p>`,
+      fields: [
+        { label: `<span class="m"><i>a</i> · <i>b</i></span>`, ans: dot, tol: 1e-9 },
+        { label: `<span class="m">‖<i>a</i>‖</span>`, ans: Math.sqrt(na), tol: 0.006 },
+        { label: `<span class="m"><i>a</i> ⊥ <i>b</i></span>?`, type: "select", options: ["ja", "nein"], ans: dot === 0 ? "ja" : "nein" }
+      ],
+      solution: `<ol class="steps"><li><span class="m"><i>a</i> · <i>b</i> = ${a.map((x, i) => `${pn(x)}·${pn(b[i])}`).join(" + ")} = ${nm(dot)}</span></li>
+        <li><span class="m">‖<i>a</i>‖ = ${SQ("<i>a</i> · <i>a</i>")} = ${SQ(na)} ≈ ${fmt(Math.sqrt(na), 4)}</span></li>
+        <li>${dot === 0 ? "Das innere Produkt ist 0, also <i>a</i> ⊥ <i>b</i>." : "Das innere Produkt ist nicht 0, die Vektoren sind nicht orthogonal."} Cauchy-Schwarz zur Kontrolle: <span class="m">|<i>a</i> · <i>b</i>| = ${Math.abs(dot)} ≤ ‖<i>a</i>‖·‖<i>b</i>‖ ≈ ${fmt(Math.sqrt(na * nb), 3)}</span>.</li></ol>`
+    };
+  }
+}
+function genMatOps() {
+  const v = pick(["lin", "trans", "rule"]);
+  if (v === "lin") {
+    const A = randMat(2, 3, -4, 5), B = randMat(2, 3, -4, 5), al = pick([2, 3, -1, -2]), be = pick([1, -1, 2, -3]);
+    const C = A.map((r, i) => r.map((x, j) => al * x + be * B[i][j]));
+    const co = (k, nmS, first) => (k === 1 ? (first ? "" : "+ ") : k === -1 ? "− " : k < 0 ? `− ${-k}` : (first ? `${k}` : `+ ${k}`)) + nmS;
+    const expr = `${co(al, "<i>A</i>", true)} ${co(be, "<i>B</i>", false)}`;
+    return {
+      prompt: `<p>Berechne <span class="m">${expr}</span>.</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span><span><i>B</i> = ${matHTML(B)}</span></div>`,
+      fields: [{ label: `<span class="m">${expr}</span> =`, type: "matrix", rows: 2, cols: 3, ans: C, tol: 1e-9 }],
+      solution: `<ol class="steps"><li>Skalar mal Matrix: jedes Element multiplizieren. Summe: entsprechende Elemente addieren (gleiche Ordnung 2 × 3).</li>
+        <li>Zum Beispiel <span class="m"><i>c</i><sub>11</sub> = ${al}·${pn(A[0][0])} + ${pn(be)}·${pn(B[0][0])} = ${nm(C[0][0])}</span>.</li>
+        <li><div class="mrow"><span>${expr} = ${matHTML(C)}</span></div></li></ol>`
+    };
+  }
+  if (v === "trans") {
+    const m = rnd(2, 4); let n = rnd(2, 4); if (n === m) n = m === 4 ? 2 : m + 1;
+    const A = randMat(m, n, -5, 9), At = A[0].map((_, j) => A.map(r => r[j]));
+    return {
+      prompt: `<p>Bestimme die transponierte Matrix <span class="m"><i>A</i>′</span>.</p><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div>`,
+      fields: [{ label: `<span class="m"><i>A</i>′</span> =`, type: "matrix", rows: n, cols: m, ans: At, tol: 1e-9 }],
+      solution: `<ol class="steps"><li><i>A</i> ist ${m} × ${n}, also ist <i>A</i>′ eine ${n} × ${m}-Matrix mit <span class="m"><i>a</i>′<sub><i>ij</i></sub> = <i>a<sub>ji</sub></i></span>.</li><li>Die erste Zeile von <i>A</i> wird die erste Spalte von <i>A</i>′ usw.:<div class="mrow"><span><i>A</i>′ = ${matHTML(At)}</span></div></li></ol>`
+    };
+  }
+  const rules = [[(i, j) => 2 * i - j, "2<i>i</i> − <i>j</i>"], [(i, j) => i + j, "<i>i</i> + <i>j</i>"], [(i, j) => i * j - 1, "<i>i</i>·<i>j</i> − 1"], [(i, j) => 3 * i - 2 * j, "3<i>i</i> − 2<i>j</i>"], [(i, j) => (i - j) ** 2, "(<i>i</i> − <i>j</i>)²"], [(i, j) => i - 2 * j + 1, "<i>i</i> − 2<i>j</i> + 1"]];
+  const [f, txt] = pick(rules), m = pick([3, 4]), n = pick([2, 3]);
+  const A = Array.from({ length: m }, (_, i) => Array.from({ length: n }, (_, j) => f(i + 1, j + 1)));
+  return {
+    prompt: `<p>Bilde die ${m} × ${n}-Matrix <span class="m"><i>A</i> = (<i>a<sub>ij</sub></i>)<sub>${m}×${n}</sub></span> mit <span class="m"><i>a<sub>ij</sub></i> = ${txt}</span>.</p>`,
+    fields: [{ label: `<span class="m"><i>A</i></span> =`, type: "matrix", rows: m, cols: n, ans: A, tol: 1e-9 }],
+    solution: `<ol class="steps"><li><i>i</i> ist die Zeile, <i>j</i> die Spalte. Zum Beispiel <span class="m"><i>a</i><sub>21</sub> = ${nm(f(2, 1))}</span> und <span class="m"><i>a</i><sub>${m}${n}</sub> = ${nm(f(m, n))}</span>.</li><li><div class="mrow"><span><i>A</i> = ${matHTML(A)}</span></div></li></ol>`
+  };
+}
+function genMarkt() {
+  const nmz = ["A", "B", "C"], T = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (let j = 0; j < 3; j++) { const k = rnd(11, 18), rem = 20 - k, a = rnd(0, rem), o = [0, 1, 2].filter(i => i !== j); T[j][j] = k; T[o[0]][j] = a; T[o[1]][j] = rem - a; }
+  const u1 = rnd(2, 12), u2 = rnd(2, 18 - u1), s = [u1, u2, 20 - u1 - u2];
+  const Ts = T.map(r => r.reduce((acc, t, k) => acc + t * s[k], 0) / 400), D = x => fmtD(x / 20);
+  const words = [0, 1, 2].map(j => { const o = [0, 1, 2].filter(i => i !== j); return `Bank ${nmz[j]} behält ${T[j][j] * 5} % ihrer Kunden, verliert ${T[o[0]][j] * 5} % an ${nmz[o[0]]} und ${T[o[1]][j] * 5} % an ${nmz[o[1]]}.`; });
+  return {
+    prompt: `<p>Die Banken A, B und C teilen sich den Markt mit den Anteilen ${s.map(x => x * 5 + " %").join(", ")}. Im Laufe des Jahres gilt:</p><ul class="keys">${words.map(w => `<li>${w}</li>`).join("")}</ul>
+      <div class="mrow"><span><i>T</i> = ${matHTML(T.map(r => r.map(D)))}</span><span><i>s</i> = ${colV(s.map(D))}</span></div>
+      <p>Das Element <i>t<sub>ij</sub></i> ist der Anteil der Kunden von Bank <i>j</i>, die zu Bank <i>i</i> wechseln. Berechne die Marktanteile am Jahresende <span class="m"><i>T</i><i>s</i></span>.</p>`,
+    fields: [{ label: `<span class="m"><i>T</i><i>s</i></span> =`, type: "matrix", rows: 3, cols: 1, ans: Ts.map(x => [x]), tol: 0.0006 }],
+    solution: `<ol class="steps">${Ts.map((v, i) => `<li>Bank ${nmz[i]}: <span class="m">${T[i].map((t, k) => `${D(t)}·${D(s[k])}`).join(" + ")} = ${fmtD(v)}</span></li>`).join("")}
+      <li>Kontrolle: <span class="m">${Ts.map(fmtD).join(" + ")} = 1</span>, also ist <i>T</i><i>s</i> wieder ein Marktanteils-Vektor.</li></ol>`
+  };
+}
+function genRohstoff() {
+  const A = randMat(3, 2, 1, 6), u = [rnd(5, 20), rnd(5, 20)], p = [rnd(2, 9), rnd(2, 9), rnd(2, 9)];
+  const r = matMul(A, u.map(x => [x])).map(x => x[0]), K = r.reduce((s, x, i) => s + x * p[i], 0);
+  return {
+    prompt: `<p>Ein Unternehmen stellt aus den Rohstoffen <i>R</i><sub>1</sub>, <i>R</i><sub>2</sub>, <i>R</i><sub>3</sub> die Güter <i>V</i><sub>1</sub>, <i>V</i><sub>2</sub> her. <i>a<sub>ij</sub></i> ist die Menge von <i>R<sub>i</sub></i> für eine Einheit von <i>V<sub>j</sub></i>. Geplant ist der Produktionsvektor <i>u</i>, die Rohstoffpreise stehen im Zeilenvektor <i>p</i>.</p>
+      <div class="mrow"><span><i>A</i> = ${matHTML(A)}</span><span><i>u</i> = ${colV(u)}</span><span><i>p</i> = (${p.join(", ")})</span></div>
+      <p>Berechne den Rohstoffbedarf <span class="m"><i>r</i> = <i>A</i><i>u</i></span> und die Kosten <span class="m"><i>K</i> = <i>p</i><i>r</i></span>.</p>`,
+    fields: [{ label: `<span class="m"><i>r</i> = <i>A</i><i>u</i></span>`, type: "matrix", rows: 3, cols: 1, ans: r.map(x => [x]), tol: 1e-9 }, { label: `<span class="m"><i>K</i> = <i>p</i><i>A</i><i>u</i></span>`, ans: K, tol: 1e-9 }],
+    solution: `<ol class="steps">${r.map((v, i) => `<li><span class="m"><i>r</i><sub>${i + 1}</sub> = ${A[i][0]}·${u[0]} + ${A[i][1]}·${u[1]} = ${v}</span> (inneres Produkt der Zeile ${i + 1} mit <i>u</i>)</li>`).join("")}
+      <li><span class="m"><i>K</i> = ${p.map((q, i) => `${q}·${r[i]}`).join(" + ")} = ${fmtI(K)}</span></li></ol>`
+  };
+}
+function genDetRules() {
+  const n = pick([2, 3]), d = pick([-6, -4, -3, -2, 2, 3, 4, 5, 6]), al = pick([2, 3, -1, -2]), dB = pick([-2, 2, 3, -3, 4]);
+  return {
+    prompt: `<p><i>A</i> und <i>B</i> sind ${n} × ${n}-Matrizen mit <span class="m">|<i>A</i>| = ${nm(d)}</span> und <span class="m">|<i>B</i>| = ${nm(dB)}</span>. Bestimme mit den Determinantenregeln:</p>`,
+    fields: [
+      { label: `<span class="m">|<i>A</i>′|</span>`, ans: d, tol: 1e-9 },
+      { label: `<span class="m">|${al}<i>A</i>|</span>`, ans: al ** n * d, tol: 1e-9 },
+      { label: `<span class="m">|<i>A</i><i>B</i>|</span>`, ans: d * dB, tol: 1e-9 },
+      { label: "|A| nach Vertauschen zweier Zeilen", ans: -d, tol: 1e-9 },
+      { label: `<span class="m">|<i>A</i><sup>−1</sup>|</span>`, ans: 1 / d, tol: 0.006 }
+    ],
+    solution: `<ol class="steps"><li>Transponieren ändert nichts: <span class="m">|<i>A</i>′| = |<i>A</i>| = ${nm(d)}</span>.</li>
+      <li><span class="m">|α<i>A</i>| = α<sup><i>n</i></sup>|<i>A</i>| = (${al})<sup>${n}</sup>·${pn(d)} = ${nm(al ** n * d)}</span>. Jede der ${n} Zeilen wird mit α multipliziert.</li>
+      <li><span class="m">|<i>A</i><i>B</i>| = |<i>A</i>|·|<i>B</i>| = ${nm(d * dB)}</span></li>
+      <li>Zeilentausch wechselt das Vorzeichen: <span class="m">${nm(-d)}</span>.</li>
+      <li>Aus <span class="m">|<i>A</i>|·|<i>A</i><sup>−1</sup>| = |<i>I</i>| = 1</span> folgt <span class="m">|<i>A</i><sup>−1</sup>| = 1/${pn(d)} = ${new Fr(1, d)}</span>.</li></ol>`
+  };
+}
+function genCramer() {
+  for (;;) {
+    const A = randMat(2, 2, -5, 6), d = det2(A);
+    if (!d) continue;
+    const b = [rnd(-12, 12), rnd(-12, 12)];
+    const d1 = b[0] * A[1][1] - A[0][1] * b[1], d2 = A[0][0] * b[1] - b[0] * A[1][0], x1 = new Fr(d1, d), x2 = new Fr(d2, d);
+    if (x1.d > 6 || x2.d > 6) continue;
+    return {
+      prompt: `<p>Löse mit der Cramer'schen Regel. Brüche wie <code>7/2</code> sind erlaubt.</p><div class="eqs">${A.map((r, i) => eqHTML(r, b[i])).join("<br>")}</div>`,
+      fields: [{ label: `<span class="m">|<i>A</i>|</span>`, ans: d, tol: 1e-9 }, { label: `<span class="m">${vsub(1)}</span>`, ans: x1.val(), tol: 0.006 }, { label: `<span class="m">${vsub(2)}</span>`, ans: x2.val(), tol: 0.006 }],
+      solution: `<ol class="steps"><li><span class="m">|<i>A</i>| = ${pn(A[0][0])}·${pn(A[1][1])} − ${pn(A[0][1])}·${pn(A[1][0])} = ${nm(d)} ≠ 0</span>, das System ist eindeutig lösbar.</li>
+        <li>Für ${vsub(1)} die erste Spalte durch die rechte Seite ersetzen: <span class="m">${vsub(1)} = ${F(`det${matHTML([[b[0], A[0][1]], [b[1], A[1][1]]])}`, nm(d))} = ${F(nm(d1), nm(d))} = ${x1}</span></li>
+        <li>Für ${vsub(2)} die zweite Spalte ersetzen: <span class="m">${vsub(2)} = ${F(`det${matHTML([[A[0][0], b[0]], [A[1][0], b[1]]])}`, nm(d))} = ${F(nm(d2), nm(d))} = ${x2}</span></li></ol>`
+    };
+  }
+}
+function genInvSolve() {
+  for (;;) {
+    const A = randMat(2, 2, -4, 5), d = det2(A);
+    if (!d || Math.abs(d) > 6) continue;
+    const [[a, b], [c, e]] = A, inv = [[new Fr(e, d), new Fr(-b, d)], [new Fr(-c, d), new Fr(a, d)]];
+    const x = [rnd(-5, 5), rnd(-5, 5)], rhs = [a * x[0] + b * x[1], c * x[0] + e * x[1]];
+    return {
+      prompt: `<p>Löse das Gleichungssystem durch Matrixinversion, also <span class="m"><i>x</i> = <i>A</i><sup>−1</sup><i>b</i></span>.</p><div class="eqs">${eqHTML([a, b], rhs[0])}<br>${eqHTML([c, e], rhs[1])}</div>`,
+      fields: [{ label: `<span class="m"><i>A</i><sup>−1</sup></span> =`, type: "matrix", rows: 2, cols: 2, ans: inv.map(r => r.map(f => f.val())), tol: 0.006 }, { label: `<span class="m">${vsub(1)}</span>`, ans: x[0], tol: 1e-6 }, { label: `<span class="m">${vsub(2)}</span>`, ans: x[1], tol: 1e-6 }],
+      solution: `<ol class="steps"><li><span class="m">|<i>A</i>| = ${nm(d)} ≠ 0</span>, also existiert <i>A</i><sup>−1</sup>: <span class="m"><i>A</i><sup>−1</sup> = ${F(1, nm(d))} ${matHTML([[e, -b], [-c, a]])} = ${matHTML(inv)}</span></li>
+        <li><span class="m"><i>x</i> = <i>A</i><sup>−1</sup><i>b</i> = ${matHTML(inv)} ${colV(rhs)} = ${colV(x)}</span></li><li>Probe durch Einsetzen.</li></ol>`
+    };
+  }
+}
+function genLGSSing() {
+  for (;;) {
+    const r1 = [rnd(-3, 3), rnd(-3, 3), rnd(-3, 3)], r2 = [rnd(-3, 3), rnd(-3, 3), rnd(-3, 3)], al = rnd(-2, 2), be = rnd(-2, 2);
+    if (!al && !be) continue;
+    const r3 = r1.map((x, j) => al * x + be * r2[j]);
+    if ([r1, r2, r3].some(r => r.every(x => !x)) || r3.some(x => Math.abs(x) > 9)) continue;
+    const b1 = rnd(-6, 6), b2 = rnd(-6, 6), cons = Math.random() < 0.55, b3 = al * b1 + be * b2 + (cons ? 0 : pick([-3, -2, -1, 1, 2, 3]));
+    const rows = shuffle([[...r1, b1], [...r2, b2], [...r3, b3]]);
+    if (rref(rows.map(r => r.slice(0, 3))).rank !== 2) continue;
+    const R = rref(rows, 1);
+    if (R.M.flat().some(f => f.d > 12)) continue;
+    let tail;
+    if (cons) {
+      const f = [0, 1, 2].find(j => !R.pivots.includes(j));
+      const ex = R.pivots.map((p, i) => { const c = R.M[i][f], r = R.M[i][3]; return `${vsub(p + 1)} = ${r}${c.isZero() ? "" : (c.n > 0 ? " − " : " + ") + (c.abs().isOne() ? "" : c.abs() + "·") + "<i>t</i>"}`; });
+      tail = `<p>Die letzte Zeile lautet <span class="m">0 = 0</span>. ${vsub(f + 1)} ist kein führender Eintrag und frei wählbar: <span class="m">${vsub(f + 1)} = <i>t</i></span>. Damit ist <span class="m">${ex.join(", ")}</span> mit <span class="m"><i>t</i> ∈ ℝ</span>: unendlich viele Lösungen, <b>ein Freiheitsgrad</b>. Geometrisch ist das eine Gerade im ℝ³.</p>`;
+    } else tail = `<p>Die letzte Zeile lautet <span class="m">0·${vsub(1)} + 0·${vsub(2)} + 0·${vsub(3)} = ${R.M[2][3]}</span>. Das ist ein Widerspruch: Das System ist <b>inkonsistent</b> und hat keine Lösung.</p>`;
+    return {
+      prompt: `<p>Untersuche das Gleichungssystem mit dem Gauß'schen Eliminationsverfahren.</p><div class="eqs">${rows.map(r => eqHTML(r.slice(0, 3), r[3])).join("<br>")}</div>`,
+      fields: [{ label: "Lösungsmenge", type: "select", options: ["keine Lösung", "genau eine Lösung", "unendlich viele Lösungen"], ans: cons ? "unendlich viele Lösungen" : "keine Lösung" }].concat(cons ? [{ label: "Anzahl der Freiheitsgrade", ans: 1, tol: 1e-9 }] : []),
+      solution: `<p>Erweiterte Koeffizientenmatrix umformen (römische Ziffern = Zeilen):</p>${gaussHTML(rows, R.steps, 1)}${tail}`
+    };
+  }
+}
+
+/* ---------- Lineare Optimierung ---------- */
+const LPCTX = [
+  { intro: "Ein Bäcker backt zwei Kuchensorten. Pro Dutzend braucht er:", p: ["Sorte A", "Sorte B"], unit: "Dutzend", r: ["Mehl (kg)", "Zucker (kg)", "Butter (kg)"], g: "Gewinn je Dutzend" },
+  { intro: "Eine Schreinerei fertigt Tische und Regale. Pro Stück werden benötigt:", p: ["Tisch", "Regal"], unit: "Stück", r: ["Holz (m²)", "Arbeitszeit (h)", "Maschinenzeit (h)"], g: "Deckungsbeitrag je Stück (€)" },
+  { intro: "Ein Landwirt baut Weizen und Raps an. Pro Hektar werden benötigt:", p: ["Weizen", "Raps"], unit: "ha", r: ["Arbeitsstunden", "Dünger (dt)", "Wasser (100 m³)"], g: "Gewinn je ha (100 €)" }
+];
+const NICE = [10, 12, 15, 16, 18, 20, 24, 25, 30, 36, 40, 45, 48, 50, 60];
+const fQ = f => (f.d === 1 ? nm(f.n) : f.d === 2 || f.d === 4 ? fmtD(f.val()) : String(f));
+function lpVertFr(A, b, c) {
+  const Ls = A.map((r, i) => [r[0], r[1], b[i]]).concat([[1, 0, 0], [0, 1, 0]]).map(r => r.map(fr)), V = [];
+  for (let i = 0; i < Ls.length; i++) for (let j = i + 1; j < Ls.length; j++) {
+    const [a1, b1, c1] = Ls[i], [a2, b2, c2] = Ls[j], d = a1.mul(b2).sub(a2.mul(b1));
+    if (d.isZero()) continue;
+    const x = c1.mul(b2).sub(c2.mul(b1)).div(d), y = a1.mul(c2).sub(a2.mul(c1)).div(d);
+    if (x.val() < -1e-9 || y.val() < -1e-9) continue;
+    if (A.some((r, k) => r[0] * x.val() + r[1] * y.val() > b[k] + 1e-9)) continue;
+    if (V.some(v => Math.abs(v.x.val() - x.val()) < 1e-9 && Math.abs(v.y.val() - y.val()) < 1e-9)) continue;
+    V.push({ x, y, z: fr(c[0]).mul(x).add(fr(c[1]).mul(y)) });
+  }
+  return V;
+}
+function simplex(A, b, c) {
+  const m = A.length, cols = ["z", ...A.map((_, i) => "y" + (i + 1)), ...c.map((_, j) => "x" + (j + 1))], rhs = cols.length;
+  let T = [[1, ...Array(m).fill(0), ...c.map(v => -v), 0].map(fr)];
+  A.forEach((r, i) => T.push([0, ...A.map((_, k) => (k === i ? 1 : 0)), ...r, b[i]].map(fr)));
+  const steps = [{ T: T.map(r => r.slice()) }];
+  for (let it = 0; it < 8; it++) {
+    let pc = -1, best = 0;
+    for (let j = 1; j < rhs; j++) if (T[0][j].val() < best - 1e-12) { best = T[0][j].val(); pc = j; }
+    if (pc < 0) break;
+    let pr = -1, bestR = Infinity; const ratios = [];
+    for (let i = 1; i <= m; i++) {
+      const a = T[i][pc];
+      if (a.val() > 0) { const r = T[i][rhs].div(a); ratios.push({ i, a, r }); if (r.val() < bestR - 1e-12) { bestR = r.val(); pr = i; } } else ratios.push({ i, a, r: null });
+    }
+    if (pr < 0) return null;
+    const pv = T[pr][pc];
+    T[pr] = T[pr].map(x => x.div(pv));
+    for (let i = 0; i <= m; i++) if (i !== pr) { const f = T[i][pc]; if (!f.isZero()) T[i] = T[i].map((x, j) => x.sub(f.mul(T[pr][j]))); }
+    steps.push({ pc, pr, pv, ratios, T: T.map(r => r.slice()) });
+  }
+  const val = name => {
+    const j = cols.indexOf(name); let row = -1;
+    for (let i = 0; i <= m; i++) { const v = T[i][j]; if (v.isOne()) { if (row >= 0) return new Fr(0); row = i; } else if (!v.isZero()) return new Fr(0); }
+    return row < 0 ? new Fr(0) : T[row][rhs];
+  };
+  return { steps, cols, T, x: c.map((_, j) => val("x" + (j + 1))), z: T[0][rhs], u: A.map((_, i) => T[0][1 + i]) };
+}
+function genLPData() {
+  for (let t = 0; t < 40000; t++) {
+    const A = [], b = []; let ok = true;
+    for (let i = 0; i < 3; i++) {
+      const X = pick(NICE), Y = pick(NICE), g = gcd(X, Y);
+      if (Y / g > 9 || X / g > 9) { ok = false; break; }
+      A.push([Y / g, X / g]); b.push(X * Y / g);
+    }
+    if (!ok) continue;
+    const c = [pick([10, 15, 20, 25, 30, 40, 50]), pick([10, 15, 20, 25, 30, 40, 50])];
+    if (c[0] === c[1]) continue;
+    const V = lpVertFr(A, b, c);
+    if (V.length !== 5) continue;
+    const Vs = V.slice().sort((p, q) => q.z.val() - p.z.val());
+    if (Vs[0].z.val() - Vs[1].z.val() < 1e-9 || V.some(v => v.x.d > 4 || v.y.d > 4)) continue;
+    const S = simplex(A, b, c);
+    if (!S || S.steps.length > 4 || S.T.flat().some(f => f.d > 24) || S.steps.some(s => s.T.flat().some(f => f.d > 24))) continue;
+    if (Math.abs(S.z.val() - Vs[0].z.val()) > 1e-9) continue;
+    V.sort((p, q) => p.x.val() - q.x.val() || q.y.val() - p.y.val());
+    return { A, b, c, V, opt: Vs[0], S, ctx: pick(LPCTX) };
+  }
+  return null;
+}
+const linTerm = (co, v) => { let s = ""; co.forEach((a, j) => { if (!a) return; const t = (Math.abs(a) === 1 ? "" : fmtD(Math.abs(a))) + `<i>${v}</i><sub>${j + 1}</sub>`; s += s === "" ? (a < 0 ? "−" : "") + t : ` ${a < 0 ? "−" : "+"} ${t}`; }); return s || "0"; };
+function lpProblemHTML(L) {
+  const { A, b, c, ctx } = L;
+  return `<p>${ctx.intro}</p><div class="tbl-wrap"><table class="qt"><thead><tr><th></th><th>${ctx.p[0]}</th><th>${ctx.p[1]}</th><th>Vorrat</th></tr></thead><tbody>
+    ${A.map((r, i) => `<tr><td class="txt">${ctx.r[i]}</td><td>${r[0]}</td><td>${r[1]}</td><td>${b[i]}</td></tr>`).join("")}
+    <tr><td class="txt">${ctx.g}</td><td>${c[0]}</td><td>${c[1]}</td><td></td></tr></tbody></table></div>
+    <p>Sei <i>x</i><sub>1</sub> die Menge ${ctx.p[0]} und <i>x</i><sub>2</sub> die Menge ${ctx.p[1]} (in ${ctx.unit}).</p>`;
+}
+const lpFormHTML = L => `<div class="f">max <i>z</i> = ${linTerm(L.c, "x")} &nbsp; unter &nbsp; ${L.A.map((r, i) => `${linTerm(r, "x")} ≤ ${L.b[i]}`).join(", &nbsp;")}, &nbsp; <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub> ≥ 0</div>`;
+function genLPGraf() {
+  const L = genLPData(), { A, b, c, V, opt, ctx } = L, k = rnd(0, 2);
+  const slack = fr(b[k]).sub(fr(A[k][0]).mul(opt.x)).sub(fr(A[k][1]).mul(opt.y));
+  const binding = A.map((r, i) => fr(b[i]).sub(fr(r[0]).mul(opt.x)).sub(fr(r[1]).mul(opt.y)).isZero());
+  return {
+    prompt: lpProblemHTML(L) + `<p>Formuliere das LP-Problem und bestimme das gewinnmaximale Produktionsprogramm grafisch bzw. über die Eckpunkte der zulässigen Menge. Wie viel ${ctx.r[k].replace(/ \(.*\)/, "")} bleibt im Optimum ungenutzt?</p>`,
+    fields: [
+      { label: `<span class="m"><i>x</i><sub>1</sub>*</span>`, ans: opt.x.val(), tol: 0.006 },
+      { label: `<span class="m"><i>x</i><sub>2</sub>*</span>`, ans: opt.y.val(), tol: 0.006 },
+      { label: `maximaler Gewinn <span class="m"><i>z</i>*</span>`, ans: opt.z.val(), tol: 0.006 },
+      { label: `ungenutzt: ${ctx.r[k]}`, ans: slack.val(), tol: 0.006 }
+    ],
+    solution: `<ol class="steps"><li>LP-Problem:${lpFormHTML(L)}</li>
+      <li>Die zulässige Menge ist ein konvexes Vieleck. Das Optimum liegt in einem Eckpunkt. Eckpunkte (Schnittpunkte der Begrenzungsgeraden, die alle Nebenbedingungen erfüllen):
+        <div class="tbl-wrap"><table class="qt"><thead><tr><th><i>x</i><sub>1</sub></th><th><i>x</i><sub>2</sub></th><th><i>z</i></th></tr></thead><tbody>${V.map(v => `<tr${v === opt ? ' class="best"' : ""}><td>${fQ(v.x)}</td><td>${fQ(v.y)}</td><td>${fQ(v.z)}</td></tr>`).join("")}</tbody></table></div></li>
+      <li>Optimum: <span class="m">(<i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>) = (${fQ(opt.x)}; ${fQ(opt.y)})</span> mit <span class="m"><i>z</i> = ${fQ(opt.z)}</span>. Grafisch: Die Höhenlinie <span class="m">${linTerm(c, "x")} = <i>c</i></span> wird nach Nordosten verschoben, bis sie die zulässige Menge nur noch in diesem Punkt berührt.</li>
+      <li>Voll ausgeschöpft: ${A.map((_, i) => (binding[i] ? ctx.r[i] : null)).filter(Boolean).join(" und ") || "keine Ressource"}. ${ctx.r[k]}: <span class="m">${b[k]} − (${linTerm(A[k], "x").replace(/<i>x<\/i><sub>1<\/sub>/, "·" + fQ(opt.x)).replace(/<i>x<\/i><sub>2<\/sub>/, "·" + fQ(opt.y))}) = ${fQ(slack)}</span> bleiben übrig.</li></ol>`
+  };
+}
+const colLab = c => (c === "z" ? "<i>z</i>" : `<i>${c[0]}</i><sub>${c.slice(1)}</sub>`);
+function tabHTML(T, cols, piv) {
+  return `<div class="tbl-wrap"><table class="tab"><thead><tr>${cols.map(c => `<th>${colLab(c)}</th>`).join("")}<th>rechte Seite</th></tr></thead><tbody>${T.map((r, i) => `<tr>${r.map((x, j) => `<td${piv && piv[0] === i && piv[1] === j ? ' class="piv"' : ""}>${x}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function simplexHTML(L) {
+  const S = L.S, cols = S.cols, rhs = cols.length;
+  let h = `<p>Schlupfvariablen <i>y</i><sub>1</sub>, <i>y</i><sub>2</sub>, <i>y</i><sub>3</sub> einführen. Erste Zeile: <span class="m"><i>z</i> − ${linTerm(L.c, "x").replace(/ \+ /g, " − ")} = 0</span>.</p>`;
+  for (let k = 1; k < S.steps.length; k++) {
+    const s = S.steps[k], prev = S.steps[k - 1].T;
+    h += tabHTML(prev, cols, [s.pr, s.pc]);
+    h += `<p><b>Iteration ${k}:</b> Pivotspalte ${colLab(cols[s.pc])}, weil ${prev[0][s.pc]} der am stärksten negative Eintrag der ersten Zeile ist. Quotienten rechte Seite : Pivotspalte: ${s.ratios.map(q => (q.r ? `<span class="m">${prev[q.i][rhs]} : ${pf(q.a)} = ${fQ(q.r)}</span>` : "–")).join(", ")}. Der kleinste Quotient bestimmt das Pivotelement <b>${s.pv}</b>. Pivotzeile durch ${pf(s.pv)} teilen und die übrigen Einträge der Pivotspalte zu 0 machen.</p>`;
+  }
+  h += `<p>Endtableau (keine negativen Einträge mehr in der ersten Zeile):</p>` + tabHTML(S.T, cols);
+  return h;
+}
+function genSimplex() {
+  const L = genLPData(), S = L.S, s1 = S.steps[1];
+  return {
+    prompt: lpProblemHTML(L) + `<p>Löse das Problem mit dem Simplexverfahren. Ordne das Tableau wie im Skript: Spalten <i>z</i>, <i>y</i><sub>1</sub>, <i>y</i><sub>2</sub>, <i>y</i><sub>3</sub>, <i>x</i><sub>1</sub>, <i>x</i><sub>2</sub>, rechte Seite.</p>`,
+    fields: [
+      { label: "Pivotspalte der 1. Iteration", type: "select", options: ["x₁", "x₂"], ans: S.cols[s1.pc] === "x1" ? "x₁" : "x₂" },
+      { label: "Pivotelement der 1. Iteration", ans: s1.pv.val(), tol: 0.006 },
+      { label: `<span class="m"><i>x</i><sub>1</sub>*</span>`, ans: S.x[0].val(), tol: 0.006 },
+      { label: `<span class="m"><i>x</i><sub>2</sub>*</span>`, ans: S.x[1].val(), tol: 0.006 },
+      { label: `<span class="m"><i>z</i>*</span>`, ans: S.z.val(), tol: 0.006 }
+    ],
+    solution: simplexHTML(L) + `<p>Ablesen: Variablen mit Einheitsvektor-Spalte haben den Wert der rechten Seite, alle anderen sind 0. Also <span class="m"><i>x</i><sub>1</sub> = ${fQ(S.x[0])}</span>, <span class="m"><i>x</i><sub>2</sub> = ${fQ(S.x[1])}</span>, <span class="m"><i>z</i> = ${fQ(S.z)}</span>.</p>`
+  };
+}
+function genDual() {
+  const L = genLPData(), S = L.S, { A, b, c } = L;
+  const At = [0, 1].map(j => A.map(r => r[j]));
+  return {
+    prompt: lpProblemHTML(L) + `<p>Das primäre Problem ist <span class="m">max ${linTerm(c, "x")}</span> unter den drei Ressourcenbeschränkungen. Stelle das duale Problem auf und bestimme seine Lösung <span class="m"><i>u</i>₁*, <i>u</i>₂*, <i>u</i>₃*</span> (Grenzgewinne einer zusätzlichen Einheit jeder Ressource).</p>`,
+    fields: [
+      { label: `<span class="m"><i>u</i><sub>1</sub>*</span>`, ans: S.u[0].val(), tol: 0.006 },
+      { label: `<span class="m"><i>u</i><sub>2</sub>*</span>`, ans: S.u[1].val(), tol: 0.006 },
+      { label: `<span class="m"><i>u</i><sub>3</sub>*</span>`, ans: S.u[2].val(), tol: 0.006 },
+      { label: "Optimalwert des dualen Problems", ans: S.z.val(), tol: 0.006 }
+    ],
+    solution: `<ol class="steps"><li>Duales Problem: Koeffizienten der Zielfunktion und rechte Seiten tauschen die Rollen, die Koeffizientenmatrix wird transponiert:
+        <div class="f">min ${linTerm(b, "u")} &nbsp; unter &nbsp; ${At.map((r, j) => `${linTerm(r, "u")} ≥ ${c[j]}`).join(", &nbsp;")}, &nbsp; <i>u</i><sub>1</sub>, <i>u</i><sub>2</sub>, <i>u</i><sub>3</sub> ≥ 0</div></li>
+      <li>Löse das primäre Problem mit dem Simplexverfahren. Im Endtableau stehen die dualen Lösungen in der ersten Zeile unter <i>y</i><sub>1</sub>, <i>y</i><sub>2</sub>, <i>y</i><sub>3</sub>:${tabHTML(S.T, S.cols)}</li>
+      <li><span class="m"><i>u</i><sub>1</sub>* = ${S.u[0]}</span>, <span class="m"><i>u</i><sub>2</sub>* = ${S.u[1]}</span>, <span class="m"><i>u</i><sub>3</sub>* = ${S.u[2]}</span>. ${S.u.some(u => u.isZero()) ? "Eine Ressource mit Grenzgewinn 0 wird im Optimum nicht ausgeschöpft: Eine weitere Einheit bringt nichts." : ""}</li>
+      <li>Kontrolle: <span class="m">${b.map((v, i) => `${v}·${pf(S.u[i])}`).join(" + ")} = ${fQ(S.z)}</span>, genau der maximale Gewinn des primären Problems.</li></ol>`
+  };
+}
+
+/* ---------- Werkzeug: grafische LP-Lösung ---------- */
+function lpVert(A, b, c) {
+  const Ls = A.map((r, i) => [r[0], r[1], b[i]]).concat([[1, 0, 0], [0, 1, 0]]), V = [];
+  for (let i = 0; i < Ls.length; i++) for (let j = i + 1; j < Ls.length; j++) {
+    const [a1, b1, c1] = Ls[i], [a2, b2, c2] = Ls[j], d = a1 * b2 - a2 * b1;
+    if (Math.abs(d) < 1e-12) continue;
+    const x = (c1 * b2 - c2 * b1) / d, y = (a1 * c2 - a2 * c1) / d;
+    if (x < -1e-9 || y < -1e-9 || A.some((r, k) => r[0] * x + r[1] * y > b[k] + 1e-9)) continue;
+    if (V.some(v => Math.abs(v.x - x) < 1e-9 && Math.abs(v.y - y) < 1e-9)) continue;
+    V.push({ x, y, z: c[0] * x + c[1] * y });
+  }
+  const cx = V.reduce((s, v) => s + v.x, 0) / V.length, cy = V.reduce((s, v) => s + v.y, 0) / V.length;
+  V.sort((p, q) => Math.atan2(p.y - cy, p.x - cx) - Math.atan2(q.y - cy, q.x - cx));
+  return { V, opt: V.reduce((m, v) => (v.z > m.z + 1e-9 ? v : m), V[0]) };
+}
+function toolLP(el) {
+  const A = [[3, 6], [1, 0.5], [1, 1]], names = ["Mehl", "Zucker", "Butter"], cvars = ["--v1", "--warn", "--v2"];
+  const sl = (id, lab, min, max, step, val) => `<label class="ctl" for="lp-${id}"><span>${lab} = <output id="lp-${id}o"></output></span><input type="range" id="lp-${id}" min="${min}" max="${max}" step="${step}" value="${val}"></label>`;
+  el.innerHTML = `<p class="tool-note">Das Kuchenproblem aus dem Skript: max <span class="m"><i>z</i> = <i>c</i><sub>1</sub><i>x</i><sub>1</sub> + <i>c</i><sub>2</sub><i>x</i><sub>2</sub></span> unter Mehl <span class="m">3<i>x</i><sub>1</sub> + 6<i>x</i><sub>2</sub> ≤ <i>b</i><sub>1</sub></span>, Zucker <span class="m"><i>x</i><sub>1</sub> + 0,5<i>x</i><sub>2</sub> ≤ <i>b</i><sub>2</sub></span>, Butter <span class="m"><i>x</i><sub>1</sub> + <i>x</i><sub>2</sub> ≤ <i>b</i><sub>3</sub></span>. Verändere Gewinne und Vorräte und verschiebe die Höhenlinie.</p>
+    <div class="ctl-row">${sl("c1", "Gewinn <i>c</i><sub>1</sub>", 5, 60, 1, 20)}${sl("c2", "Gewinn <i>c</i><sub>2</sub>", 5, 60, 1, 30)}${sl("b1", "Mehl <i>b</i><sub>1</sub>", 60, 240, 1, 150)}${sl("b2", "Zucker <i>b</i><sub>2</sub>", 5, 60, 0.5, 22)}${sl("b3", "Butter <i>b</i><sub>3</sub>", 5, 60, 0.5, 27.5)}${sl("lv", "Höhenlinie <i>z</i>", 0, 1.3, 0.01, 0.77)}</div>
+    <div class="canvas-wrap"><canvas id="lp-cv" role="img" aria-label="Zulässige Menge, Begrenzungsgeraden und Höhenlinie"></canvas></div>
+    <div class="legend"><span style="--sw:var(--v1)">Mehl</span><span style="--sw:var(--warn)">Zucker</span><span style="--sw:var(--v2)">Butter</span><span style="--sw:var(--accent)">Höhenlinie</span></div>
+    <p class="readout-line" id="lp-out"></p>`;
+  const cv = $("#lp-cv", el), g = id => +$("#lp-" + id, el).value;
+  function draw() {
+    const c = [g("c1"), g("c2")], b = [g("b1"), g("b2"), g("b3")];
+    ["c1", "c2", "b1", "b2", "b3"].forEach(id => { $(`#lp-${id}o`, el).textContent = fmtD(g(id)); });
+    const { V, opt } = lpVert(A, b, c), level = g("lv") * opt.z;
+    $("#lp-lvo", el).textContent = fmt(level, 0);
+    const size = Math.min(cv.parentElement.clientWidth, 520), { ctx, w, h } = setupCanvas(cv, Math.round(size * 0.8));
+    const xr = Math.max(...V.map(v => v.x)) * 1.35 + 2, yr = Math.max(...V.map(v => v.y)) * 1.35 + 2;
+    const Lp = 34, Rp = 10, Tp = 10, Bp = 26, X = x => Lp + x / xr * (w - Lp - Rp), Y = y => h - Bp - y / yr * (h - Tp - Bp);
+    const ink = cssv(cv, "--ink"), muted = cssv(cv, "--muted"), line = cssv(cv, "--line"), acc = cssv(cv, "--accent");
+    ctx.font = MONO; ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
+    const sx = niceStep(xr / 6), sy = niceStep(yr / 6);
+    ctx.textAlign = "center"; for (let x = 0; x <= xr; x += sx) { ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Tp); ctx.stroke(); ctx.fillText(String(x), X(x), h - 8); }
+    ctx.textAlign = "right"; for (let y = sy; y <= yr; y += sy) { ctx.beginPath(); ctx.moveTo(X(0), Y(y)); ctx.lineTo(w - Rp, Y(y)); ctx.stroke(); ctx.fillText(String(y), Lp - 5, Y(y) + 4); }
+    ctx.save(); ctx.beginPath(); ctx.rect(Lp, Tp, w - Lp - Rp, h - Tp - Bp); ctx.clip();
+    ctx.fillStyle = acc; ctx.globalAlpha = 0.16; ctx.beginPath(); V.forEach((v, i) => (i ? ctx.lineTo(X(v.x), Y(v.y)) : ctx.moveTo(X(v.x), Y(v.y)))); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    A.forEach((r, i) => { ctx.strokeStyle = cssv(cv, cvars[i]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(b[i] / r[1])); ctx.lineTo(X(b[i] / r[0]), Y(0)); ctx.stroke(); });
+    ctx.strokeStyle = acc; ctx.lineWidth = 2; ctx.setLineDash([7, 5]);
+    ctx.beginPath(); ctx.moveTo(X(0), Y(level / c[1])); ctx.lineTo(X(level / c[0]), Y(0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(X(0), Tp); ctx.lineTo(X(0), Y(0)); ctx.lineTo(w - Rp, Y(0)); ctx.stroke();
+    V.forEach(v => { ctx.fillStyle = v === opt ? acc : ink; ctx.beginPath(); ctx.arc(X(v.x), Y(v.y), v === opt ? 6 : 3, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = ink; ctx.textAlign = X(opt.x) > w - 140 ? "right" : "left";
+    ctx.fillText(`(${fmt(opt.x, 2)}; ${fmt(opt.y, 2)})  z = ${fmt(opt.z, 1)}`, X(opt.x) + (ctx.textAlign === "left" ? 10 : -10), Y(opt.y) - 10);
+    const slack = A.map((r, i) => b[i] - r[0] * opt.x - r[1] * opt.y);
+    const marg = A.map((_, i) => { const bb = b.slice(); bb[i] += 1; return lpVert(A, bb, c).opt.z - opt.z; });
+    $("#lp-out", el).innerHTML = `Optimum <span class="m">(<i>x</i><sub>1</sub>; <i>x</i><sub>2</sub>) = (${fmt(opt.x, 2)}; ${fmt(opt.y, 2)})</span>, <span class="m"><i>z</i>* = ${fmt(opt.z, 2)}</span>. ${level > opt.z + 1e-6 ? "Die Höhenlinie hat keinen Punkt mehr mit der zulässigen Menge gemeinsam." : ""}<br>
+      Übrig: ${names.map((n, i) => `${n} ${fmt(Math.max(0, slack[i]), 2)}`).join(" · ")}<br>Grenzgewinn je zusätzlichem kg: ${names.map((n, i) => `${n} ${fmt(marg[i], 2)}`).join(" · ")}`;
+  }
+  el.querySelectorAll("input").forEach(i => i.addEventListener("input", draw));
+  watch(cv, draw); draw();
+}
+
+/* ---------- Theorie nach den Skripten ---------- */
+const Fx = "<i>f</i>(<i>x</i>)", xi = "<i>x<sub>i</sub></i>";
+TH.zv = `
+  <p>Eine Zufallsvariable ${X_} ordnet jedem Elementarereignis <i>e</i> eine reelle Zahl ${X_}(<i>e</i>) zu. Sie heißt <b>diskret</b>, wenn ihr Wertevorrat endlich oder abzählbar unendlich ist, und <b>stetig</b>, wenn er aus der reellen Achse oder Teilintervallen besteht.</p>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th></th><th>diskret</th><th>stetig</th></tr></thead><tbody>
+    <tr><td class="txt">Funktion</td><td>Massenfunktion ${Fx} = P(${X_} = <i>x</i>)</td><td>Dichtefunktion ${Fx} = <i>F</i>′(<i>x</i>)</td></tr>
+    <tr><td class="txt">Normierung</td><td>Σ <i>f</i>(${xi}) = 1</td><td>∫ ${Fx} d<i>x</i> = 1</td></tr>
+    <tr><td class="txt">Verteilungsfunktion</td><td><i>F</i>(<i>x</i>) = Σ<sub>${xi} ≤ <i>x</i></sub> <i>f</i>(${xi})</td><td>P(<i>a</i> ≤ ${X_} ≤ <i>b</i>) = <i>F</i>(<i>b</i>) − <i>F</i>(<i>a</i>)</td></tr>
+    <tr><td class="txt">Erwartungswert</td><td>E(${X_}) = Σ <i>x<sub>j</sub></i> <i>f</i>(<i>x<sub>j</sub></i>)</td><td>E(${X_}) = ∫ <i>x</i> ${Fx} d<i>x</i></td></tr>
+    <tr><td class="txt">Varianz</td><td>Σ (<i>x<sub>j</sub></i> − μ)² <i>f</i>(<i>x<sub>j</sub></i>)</td><td>∫ (<i>x</i> − μ)² ${Fx} d<i>x</i></td></tr></tbody></table></div>
+  <div class="f">Var(${X_}) = E(${X_}²) − μ²<span class="lbl">vereinfachte Berechnung</span></div>
+  <ul class="keys">
+    <li><b>Verteilungsfunktion</b> <i>F</i>(<i>x</i>) = P(${X_} ≤ <i>x</i>): monoton steigend, rechtsseitig stetig, Grenzwerte 0 und 1. Bei diskreten Zufallsvariablen ist sie eine Treppenfunktion.</li>
+    <li>Die Standardabweichung ist <span class="m">σ = +√Var(${X_})</span>. E(${X_}) heißt Lageparameter, Var(${X_}) Streuungsparameter.</li>
+  </ul>`;
+TH.trafo = `
+  <h4>Erwartungswert</h4>
+  <div class="f">E(<i>a</i>) = <i>a</i> &nbsp;&nbsp; E(<i>a</i> + <i>b</i>${X_}) = <i>a</i> + <i>b</i>·E(${X_}) &nbsp;&nbsp; E[<i>g</i><sub>1</sub>(${X_}) + <i>g</i><sub>2</sub>(${X_})] = E[<i>g</i><sub>1</sub>(${X_})] + E[<i>g</i><sub>2</sub>(${X_})]</div>
+  <h4>Varianz</h4>
+  <div class="f">Var(<i>a</i>) = 0 &nbsp;&nbsp; Var(${X_} + <i>a</i>) = Var(${X_}) &nbsp;&nbsp; Var(<i>a</i> + <i>b</i>${X_}) = <i>b</i>²·Var(${X_}) &nbsp;&nbsp; σ<sub><i>a</i>+<i>bX</i></sub> = |<i>b</i>|·σ<sub><i>X</i></sub></div>
+  <h4>Steinerscher Satz (Verschiebungssatz)</h4>
+  <div class="f">Var(${X_}) = E[(${X_} − <i>d</i>)²] − (μ − <i>d</i>)²<span class="lbl">mit d = 0: Var(X) = E(X²) − μ²</span></div>
+  <h4>Standardisieren</h4>
+  <div class="f"><i>Z</i> = ${F(`${X_} − μ`, "σ")} &nbsp; ⇒ &nbsp; E(<i>Z</i>) = 0, &nbsp; Var(<i>Z</i>) = 1</div>
+  <ul class="keys"><li>Erst um μ verschieben (Mittelwert 0), dann mit dem Faktor 1/σ strecken (Varianz 1).</li><li>Der z-Wert sagt, um wie viele Standardabweichungen ein Wert vom Erwartungswert abweicht.</li></ul>`;
+TH.tsch = `
+  <p>Für <b>jede</b> Zufallsvariable mit Erwartungswert μ und Standardabweichung σ gilt, völlig unabhängig von der Verteilung, für jedes <i>k</i> &gt; 0:</p>
+  <div class="f">P(|${X_} − μ| ≥ <i>k</i>σ) ≤ ${F(1, "<i>k</i>²")} &nbsp;&nbsp; bzw. &nbsp;&nbsp; P(μ − <i>k</i>σ &lt; ${X_} &lt; μ + <i>k</i>σ) ≥ 1 − ${F(1, "<i>k</i>²")}</div>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th><i>k</i></th><th>außerhalb höchstens</th><th>innerhalb mindestens</th></tr></thead><tbody>
+    <tr><td>1,5</td><td>0,444</td><td>0,556</td></tr><tr><td>2</td><td>0,25</td><td>0,75</td></tr><tr><td>2,5</td><td>0,16</td><td>0,84</td></tr><tr><td>3</td><td>0,111</td><td>0,889</td></tr></tbody></table></div>
+  <ol class="steps"><li>Abstand <i>c</i> der Intervallgrenzen vom Erwartungswert bestimmen.</li><li><span class="m"><i>k</i> = <i>c</i>/σ</span> mit <span class="m">σ = √Var(${X_})</span>.</li><li>Schranke <span class="m">1/<i>k</i>²</span> bzw. <span class="m">1 − 1/<i>k</i>²</span> berechnen.</li></ol>
+  <ul class="keys"><li>Für <i>k</i> ≤ 1 ist die Aussage trivial.</li><li>Bei diskreten Werten zuerst die Grenzen umschreiben. Skriptbeispiel: <span class="m">${X_} &lt; 3</span> oder <span class="m">${X_} &gt; 6</span> wird zu <span class="m">${X_} ≤ 2</span> oder <span class="m">${X_} ≥ 7</span>, also <span class="m">|${X_} − 4,5| ≥ 2,5</span>.</li></ul>`;
+TH.kombi = `
+  <div class="f"><i>n</i>! = 1 · 2 · … · <i>n</i>, &nbsp; 0! = 1 &nbsp;&nbsp;&nbsp; ${BC("<i>n</i>", "<i>k</i>")} = ${F("<i>n</i>!", "<i>k</i>! (<i>n</i> − <i>k</i>)!")}</div>
+  <div class="tbl-wrap"><table class="qt"><thead><tr><th>Fragestellung</th><th>Anzahl</th></tr></thead><tbody>
+    <tr><td class="txt">Permutationen: alle <i>n</i> verschiedenen Elemente anordnen</td><td><sub><i>n</i></sub><i>P</i> = <i>n</i>!</td></tr>
+    <tr><td class="txt">Kombinationen <i>k</i>-ter Ordnung <b>mit</b> Berücksichtigung der Anordnung</td><td><sub><i>n</i></sub><i>V</i><sub><i>k</i></sub> = ${F("<i>n</i>!", "(<i>n</i> − <i>k</i>)!")}</td></tr>
+    <tr><td class="txt">Kombinationen <i>k</i>-ter Ordnung <b>ohne</b> Berücksichtigung der Anordnung</td><td><sub><i>n</i></sub><i>C</i><sub><i>k</i></sub> = ${BC("<i>n</i>", "<i>k</i>")}</td></tr></tbody></table></div>
+  <ul class="keys">
+    <li>Medaillen bei 8 Sprintern: <span class="m"><sub>8</sub><i>V</i><sub>3</sub> = 8 · 7 · 6 = 336</span>.</li>
+    <li>Lotto: <span class="m">${BC(49, 6)} = 13 983 816</span>. Genau 4 Richtige: <span class="m">${BC(6, 4)} · ${BC(43, 2)} = 15 · 903 = 13 545</span>.</li>
+    <li>Im Pascal'schen Dreieck ist jede Zahl die Summe der beiden darüber.</li>
+  </ul>`;
+TH.binom = `
+  <h4>Bernoulli-Verteilung</h4>
+  <p>Ein Experiment mit „Erfolg“ (Wahrscheinlichkeit <i>p</i>) oder „Misserfolg“ (<i>q</i> = 1 − <i>p</i>).</p>
+  <div class="f"><i>f</i><sub>Be</sub>(1; <i>p</i>) = <i>p</i>, &nbsp; <i>f</i><sub>Be</sub>(0; <i>p</i>) = 1 − <i>p</i> &nbsp;&nbsp; E(${X_}) = <i>p</i> &nbsp;&nbsp; Var(${X_}) = <i>p</i><i>q</i></div>
+  <h4>Binomialverteilung</h4>
+  <p><i>n</i> unabhängige Bernoulli-Experimente mit gleichem <i>p</i> (Urnenmodell <b>mit</b> Zurücklegen). ${X_} zählt die Erfolge.</p>
+  <div class="f"><i>f</i><sub>Bi</sub>(<i>x</i>; <i>p</i>, <i>n</i>) = ${BC("<i>n</i>", "<i>x</i>")} <i>p</i><sup><i>x</i></sup> (1 − <i>p</i>)<sup><i>n</i>−<i>x</i></sup>, &nbsp; <i>x</i> = 0, 1, …, <i>n</i></div>
+  <div class="f">E(${X_}) = <i>n</i><i>p</i> &nbsp;&nbsp; Var(${X_}) = <i>n</i><i>p</i>(1 − <i>p</i>)</div>
+  <ul class="keys"><li>Zwei-Parameter-Familie. Symmetrisch für <i>p</i> = 1/2, linkssteil für <i>p</i> &lt; 1/2, rechtssteil für <i>p</i> &gt; 1/2.</li><li><span class="m">P(${X_} ≤ <i>x</i>)</span> ist die Summe der Einzelwahrscheinlichkeiten. Für „mindestens eins“ hilft die Gegenwahrscheinlichkeit <span class="m">1 − P(${X_} = 0)</span>.</li></ul>`;
+TH.hyper = `
+  <p>Urnenmodell <b>ohne</b> Zurücklegen: <i>N</i> Kugeln, davon <i>S</i> schwarz, Stichprobe vom Umfang <i>n</i>. ${X_} ist die Anzahl schwarzer Kugeln.</p>
+  <div class="f"><i>f</i><sub>Hy</sub>(<i>x</i>; <i>N</i>, <i>S</i>, <i>n</i>) = ${F(`${BC("<i>S</i>", "<i>x</i>")} · ${BC("<i>N</i> − <i>S</i>", "<i>n</i> − <i>x</i>")}`, BC("<i>N</i>", "<i>n</i>"))}</div>
+  <div class="f">E(${X_}) = <i>n</i><i>p</i> mit <i>p</i> = <i>S</i>/<i>N</i> &nbsp;&nbsp; Var(${X_}) = <i>n</i><i>p</i>(1 − <i>p</i>) · ${F("<i>N</i> − <i>n</i>", "<i>N</i> − 1")}</div>
+  <ul class="keys"><li>Der <b>Korrekturfaktor</b> <span class="m"><i>K<sub>f</sub></i> = (<i>N</i> − <i>n</i>)/(<i>N</i> − 1) ≤ 1</span> macht die Varianz kleiner als bei der Binomialverteilung.</li><li>Drei-Parameter-Familie. Für <i>N</i> → ∞ geht <i>K<sub>f</sub></i> → 1 und die hypergeometrische in die Binomialverteilung über.</li><li>Ohne Zurücklegen sind die Ziehungen nicht unabhängig.</li></ul>`;
+TH.pois = `
+  <p>Zahl der Erfolge bei sehr vielen Bernoulli-Experimenten (<i>n</i> → ∞) mit sehr kleiner Erfolgswahrscheinlichkeit (<i>p</i> → 0), wobei <span class="m"><i>n</i><i>p</i> → λ</span>.</p>
+  <div class="f"><i>f</i><sub>Po</sub>(<i>x</i>; λ) = ${F("λ<sup><i>x</i></sup>", "<i>x</i>!")} <i>e</i><sup>−λ</sup>, &nbsp; <i>x</i> = 0, 1, 2, … &nbsp;&nbsp; E(${X_}) = Var(${X_}) = λ</div>
+  <ul class="keys">
+    <li><b>Näherung:</b> <span class="m"><i>f</i><sub>Bi</sub>(<i>x</i>; <i>p</i>, <i>n</i>) ≈ <i>f</i><sub>Po</sub>(<i>x</i>; λ = <i>n</i><i>p</i>)</span> für großes <i>n</i> und kleines <i>p</i>. Roulette, 200 Spiele auf die 17: λ = 200/37 = 5,4054 und P(${X_} = 8) ≈ 0,0812 (exakt binomial 0,0814).</li>
+    <li>Anwendungen: Bestellungen pro Tag, Kreditausfälle. 1000 Kredite mit je 1 % Ausfallwahrscheinlichkeit ergeben λ = 10.</li>
+    <li><span class="m">P(${X_} ≥ <i>k</i>) = 1 − P(${X_} ≤ <i>k</i> − 1)</span>.</li></ul>`;
+TH.geo = `
+  <p>Ein Bernoulli-Experiment wird so oft ausgeführt, bis zum ersten Mal Erfolg eintritt. ${X_} ist die Anzahl der <b>vorausgegangenen Misserfolge</b>.</p>
+  <div class="f"><i>f</i><sub>Geo</sub>(<i>x</i>; <i>p</i>) = (1 − <i>p</i>)<sup><i>x</i></sup> <i>p</i>, &nbsp; <i>x</i> = 0, 1, 2, … &nbsp;&nbsp; <i>F</i><sub>Geo</sub>(<i>x</i>; <i>p</i>) = 1 − (1 − <i>p</i>)<sup><i>x</i>+1</sup></div>
+  <div class="f">E(${X_}) = ${F("1 − <i>p</i>", "<i>p</i>")} &nbsp;&nbsp; Var(${X_}) = ${F("1 − <i>p</i>", "<i>p</i>²")}</div>
+  <ul class="keys"><li>Taxi-Beispiel aus dem Skript mit <i>p</i> = 0,2: E(${X_}) = 0,8/0,2 = 4 Minuten, σ = √20 ≈ 4,472, P(${X_} &gt; 5) = 1 − <i>F</i>(5) = 0,2622.</li><li>Achtung: Manche Lehrbücher zählen die Versuche einschließlich des Erfolgs (dann E = 1/<i>p</i>). Die App verwendet die Definition aus deinem Skript.</li></ul>`;
+TH.stetig = `
+  <h4>Rechteckverteilung auf [<i>a</i>, <i>b</i>]</h4>
+  <div class="f"><i>f</i><sub>R</sub>(<i>x</i>) = ${F(1, "<i>b</i> − <i>a</i>")} für <i>a</i> ≤ <i>x</i> ≤ <i>b</i>, sonst 0 &nbsp;&nbsp; E(${X_}) = ${F("<i>a</i> + <i>b</i>", 2)} &nbsp;&nbsp; Var(${X_}) = ${F("(<i>b</i> − <i>a</i>)²", 12)}</div>
+  <p>Stetige Version der diskreten Gleichverteilung. Bus alle 30 Minuten: P(<i>T</i> &gt; 10) = 1 − 10/30 = 2/3, E(<i>T</i>) = 15, σ = 8,6603.</p>
+  <h4>Exponentialverteilung</h4>
+  <div class="f"><i>f</i><sub>Ex</sub>(<i>x</i>; λ) = λ<i>e</i><sup>−λ<i>x</i></sup>, <i>x</i> ≥ 0 &nbsp;&nbsp; <i>F</i><sub>Ex</sub>(<i>x</i>; λ) = 1 − <i>e</i><sup>−λ<i>x</i></sup> &nbsp;&nbsp; E(${X_}) = 1/λ &nbsp;&nbsp; Var(${X_}) = 1/λ²</div>
+  <ul class="keys"><li>Stetiges Pendant der geometrischen Verteilung, z. B. für Lebensdauern. Mit μ = 1/λ: <span class="m"><i>f</i>(<i>x</i>) = (1/μ) <i>e</i><sup>−<i>x</i>/μ</sup></span>.</li><li>Glühbirne mit μ = 5000 h: P(${X_} &lt; 2500) = 1 − <i>e</i><sup>−0,5</sup> = 0,3935 und P(${X_} &gt; 10 000) = <i>e</i><sup>−2</sup> = 0,1353.</li></ul>`;
+TH.normal = `
+  <h4>Standardnormalverteilung</h4>
+  <div class="f"><i>f</i><sub>St</sub>(<i>z</i>) = ${F(1, SQ("2π"))} <i>e</i><sup>−<i>z</i>²/2</sup> &nbsp;&nbsp; E(<i>Z</i>) = 0, Var(<i>Z</i>) = 1</div>
+  <p>Glockenkurve mit Maximum bei <i>z</i> = 0 und Wendepunkten bei ±1. Die Verteilungsfunktion <i>F</i><sub>St</sub>(<i>z</i>) ist nicht elementar und steht in Tabellen.</p>
+  <div class="tbl-wrap"><table class="qt"><tbody>
+    <tr><td><i>F</i><sub>St</sub>(0) = 0,5</td><td><i>F</i><sub>St</sub>(1) = 0,8413</td><td><i>F</i><sub>St</sub>(1,8) = 0,9641</td></tr>
+    <tr><td><i>D</i>(1) = 0,6826</td><td><i>D</i>(2) = 0,9544</td><td><i>D</i>(1,96) = 0,95</td></tr></tbody></table></div>
+  <h4>Allgemeine Normalverteilung</h4>
+  <div class="f"><i>F</i><sub>N</sub>(<i>x</i>) = <i>F</i><sub>St</sub>(${F("<i>x</i> − μ", "σ")}) &nbsp;&nbsp; P(<i>a</i> &lt; ${X_} ≤ <i>b</i>) = <i>F</i><sub>St</sub>(${F("<i>b</i> − μ", "σ")}) − <i>F</i><sub>St</sub>(${F("<i>a</i> − μ", "σ")})</div>
+  <ul class="keys">
+    <li>Symmetrie: <span class="m"><i>F</i><sub>St</sub>(−<i>z</i>) = 1 − <i>F</i><sub>St</sub>(<i>z</i>)</span>, und <span class="m"><i>D</i>(<i>z</i>) = P(−<i>z</i> &lt; <i>Z</i> ≤ <i>z</i>) = 2<i>F</i><sub>St</sub>(<i>z</i>) − 1</span>.</li>
+    <li>Skriptbeispiel E(${X_}) = 5, Var(${X_}) = 9: P(4 &lt; ${X_} ≤ 7) = <i>F</i><sub>St</sub>(2/3) − <i>F</i><sub>St</sub>(−1/3) = 0,7475 − 0,3694 = 0,3781.</li>
+    <li>Achtung: Ist die Varianz gegeben, zuerst σ = √Var berechnen.</li>
+    <li>Lognormalverteilung: ln ${X_} ist normalverteilt. Sie ist rechtsschief und modelliert z. B. aggregierte Kreditverluste.</li></ul>`;
+TH.vek = `
+  <p>Ein Vektor beschreibt eine Bewegung. Von <i>P</i> = (<i>p</i><sub>1</sub>, <i>p</i><sub>2</sub>) nach <i>Q</i> = (<i>q</i><sub>1</sub>, <i>q</i><sub>2</sub>) gilt <span class="m"><i>a</i> = (<i>q</i><sub>1</sub> − <i>p</i><sub>1</sub>, <i>q</i><sub>2</sub> − <i>p</i><sub>2</sub>)</span>. Die Summe <i>a</i> + <i>b</i> ist die Diagonale im Parallelogramm, <i>t</i><i>a</i> ist eine Umskalierung.</p>
+  <h4>Inneres Produkt (Skalarprodukt)</h4>
+  <div class="f"><i>a</i> · <i>b</i> = <i>a</i><sub>1</sub><i>b</i><sub>1</sub> + <i>a</i><sub>2</sub><i>b</i><sub>2</sub> + … + <i>a<sub>n</sub></i><i>b<sub>n</sub></i> = Σ <i>a<sub>i</sub></i><i>b<sub>i</sub></i></div>
+  <h4>Länge (Norm)</h4>
+  <div class="f">‖<i>a</i>‖ = ${SQ("<i>a</i><sub>1</sub>² + … + <i>a<sub>n</sub></i>²")} = ${SQ("<i>a</i> · <i>a</i>")}</div>
+  <ul class="keys">
+    <li>Das innere Produkt ist eine Zahl (Skalar) und nur für Vektoren gleicher Dimension definiert.</li>
+    <li>Regeln: <span class="m"><i>a</i>·<i>b</i> = <i>b</i>·<i>a</i></span>, <span class="m"><i>a</i>·(<i>b</i> + <i>c</i>) = <i>a</i>·<i>b</i> + <i>a</i>·<i>c</i></span>, <span class="m">(α<i>a</i>)·<i>b</i> = α(<i>a</i>·<i>b</i>)</span>, <span class="m"><i>a</i>·<i>a</i> &gt; 0 ⇔ <i>a</i> ≠ 0</span>.</li>
+    <li><b>Orthogonal:</b> <span class="m"><i>a</i> ⊥ <i>b</i> ⇔ <i>a</i> · <i>b</i> = 0</span> (folgt aus dem Satz des Pythagoras).</li>
+    <li><b>Cauchy-Schwarz:</b> <span class="m">|<i>a</i> · <i>b</i>| ≤ ‖<i>a</i>‖ · ‖<i>b</i>‖</span>.</li>
+    <li>Ökonomisch: Preisvektor · Warenvektor = Gesamtwarenwert, z. B. (4, 5, 3, 8) · (5, 3, 6, 7) = 109.</li></ul>`;
+TH.matops = `
+  <p>Eine <i>m</i> × <i>n</i>-Matrix <span class="m"><i>A</i> = (<i>a<sub>ij</sub></i>)<sub><i>m</i>×<i>n</i></sub></span> hat <i>m</i> Zeilen und <i>n</i> Spalten. <i>a<sub>ij</sub></i> steht in Zeile <i>i</i> und Spalte <i>j</i>. Ist <i>m</i> = <i>n</i>, heißt sie quadratisch, und <i>a</i><sub>11</sub>, …, <i>a<sub>nn</sub></i> bilden die Hauptdiagonale.</p>
+  <div class="f"><i>A</i> + <i>B</i> = (<i>a<sub>ij</sub></i> + <i>b<sub>ij</sub></i>) &nbsp;&nbsp; α<i>A</i> = (α<i>a<sub>ij</sub></i>) &nbsp;&nbsp; <i>A</i>′ = (<i>a</i>′<sub><i>ij</i></sub>) mit <i>a</i>′<sub><i>ij</i></sub> = <i>a<sub>ji</sub></i></div>
+  <ul class="keys">
+    <li>Addieren nur bei gleicher Ordnung. Es gelten Assoziativ- und Kommutativgesetz, <span class="m"><i>A</i> + 0 = <i>A</i></span>, <span class="m">(α + β)<i>A</i> = α<i>A</i> + β<i>A</i></span>, <span class="m">α(<i>A</i> + <i>B</i>) = α<i>A</i> + α<i>B</i></span>.</li>
+    <li><b>Transponieren:</b> Jede Zeile von <i>A</i> wird eine Spalte von <i>A</i>′. Regeln: <span class="m">(<i>A</i>′)′ = <i>A</i></span>, <span class="m">(<i>A</i> + <i>B</i>)′ = <i>A</i>′ + <i>B</i>′</span>, <span class="m">(α<i>A</i>)′ = α<i>A</i>′</span>, <span class="m">(<i>A</i><i>B</i>)′ = <i>B</i>′<i>A</i>′</span>.</li>
+    <li><b>Symmetrisch</b> heißt <span class="m"><i>A</i> = <i>A</i>′</span>, also <span class="m"><i>a<sub>ij</sub></i> = <i>a<sub>ji</sub></i></span>.</li>
+    <li>Für einen Spaltenvektor gilt <span class="m"><i>x</i>′<i>x</i> = ‖<i>x</i>‖²</span>, während <i>x</i><i>x</i>′ eine <i>n</i> × <i>n</i>-Matrix ist.</li></ul>`;
+TH.mm = `
+  <p>Das Produkt <span class="m"><i>C</i> = <i>A</i><i>B</i></span> existiert nur, wenn <i>A</i> so viele Spalten hat wie <i>B</i> Zeilen: <span class="m">(<i>m</i> × <i>n</i>) · (<i>n</i> × <i>p</i>) = (<i>m</i> × <i>p</i>)</span>.</p>
+  <div class="f"><i>c<sub>ij</sub></i> = Σ<sub><i>r</i>=1</sub><sup><i>n</i></sup> <i>a<sub>ir</sub></i> <i>b<sub>rj</sub></i><span class="lbl">inneres Produkt der i-ten Zeile von A mit der j-ten Spalte von B</span></div>
+  <ul class="keys">
+    <li><b>AB = BA gilt im Allgemeinen nicht!</b> Ist A 6 × 3 und B 3 × 5, ist AB definiert, BA nicht.</li>
+    <li>Es gelten <span class="m">(<i>A</i><i>B</i>)<i>C</i> = <i>A</i>(<i>B</i><i>C</i>)</span>, <span class="m"><i>A</i>(<i>B</i> + <i>C</i>) = <i>A</i><i>B</i> + <i>A</i><i>C</i></span>, <span class="m">(<i>A</i> + <i>B</i>)<i>C</i> = <i>A</i><i>C</i> + <i>B</i><i>C</i></span>.</li>
+    <li>Regeln, die <b>nicht</b> gelten: <span class="m"><i>A</i><i>B</i> = 0</span> erzwingt nicht <i>A</i> = 0 oder <i>B</i> = 0; aus <span class="m"><i>A</i><i>B</i> = <i>A</i><i>C</i></span> folgt nicht <i>B</i> = <i>C</i>. <span class="m"><i>A</i><i>A</i> + <i>A</i><i>B</i> + <i>B</i><i>A</i> + <i>B</i><i>B</i></span> ist nicht <span class="m"><i>A</i><i>A</i> + 2<i>A</i><i>B</i> + <i>B</i><i>B</i></span>.</li>
+    <li>Einheitsmatrix <i>I<sub>n</sub></i>: <span class="m"><i>A</i><i>I<sub>n</sub></i> = <i>I<sub>n</sub></i><i>A</i> = <i>A</i></span>. Potenzen: <span class="m"><i>A</i><sup><i>n</i></sup> = <i>A</i><i>A</i>…<i>A</i></span>.</li>
+    <li>Anwendungen: Marktanteile nach einem Jahr <span class="m"><i>T</i><i>s</i></span>, Rohstoffbedarf <span class="m"><i>r</i> = <i>A</i><i>u</i></span>, Kosten <span class="m"><i>K</i> = <i>p</i><i>A</i><i>u</i></span>, Flugverbindungen <span class="m"><i>R</i> = <i>P</i><i>Q</i></span>.</li></ul>`;
+TH.det = `
+  <h4>Ordnung 2</h4>
+  <div class="f">|<i>A</i>| = det${matHTML([["<i>a</i><sub>11</sub>", "<i>a</i><sub>12</sub>"], ["<i>a</i><sub>21</sub>", "<i>a</i><sub>22</sub>"]])} = <i>a</i><sub>11</sub><i>a</i><sub>22</sub> − <i>a</i><sub>12</sub><i>a</i><sub>21</sub></div>
+  <h4>Ordnung 3: Entwicklung nach Co-Faktoren (erste Zeile)</h4>
+  <div class="f">|<i>A</i>| = <i>a</i><sub>11</sub>·|<i>A</i><sub>11</sub>| <b>−</b> <i>a</i><sub>12</sub>·|<i>A</i><sub>12</sub>| + <i>a</i><sub>13</sub>·|<i>A</i><sub>13</sub>|</div>
+  <p><i>A</i><sub>1<i>j</i></sub> entsteht durch Streichen der ersten Zeile und der <i>j</i>-ten Spalte. Achtung beim Minus vor <i>a</i><sub>12</sub>. Skriptbeispiel: <span class="m">${matHTML([[3, 0, 2], [-1, 1, 0], [5, 2, 3]])}</span> hat |A| = 3·3 − 0 + 2·(−2 − 5) = −5.</p>
+  <h4>Regeln für eine <i>n</i> × <i>n</i>-Matrix</h4>
+  <ol class="steps">
+    <li>Eine Zeile oder Spalte nur aus Nullen: |<i>A</i>| = 0.</li>
+    <li>|<i>A</i>′| = |<i>A</i>|.</li>
+    <li>Eine Zeile mit α multiplizieren: Die Determinante wird mit α multipliziert.</li>
+    <li>Zwei Zeilen vertauschen: Vorzeichenwechsel.</li>
+    <li>Zwei Zeilen proportional: |<i>A</i>| = 0.</li>
+    <li>Vielfaches einer Zeile zu einer anderen addieren: unverändert.</li>
+    <li>|<i>A</i><i>B</i>| = |<i>A</i>| · |<i>B</i>|.</li>
+    <li>|α<i>A</i>| = α<sup><i>n</i></sup>|<i>A</i>|.</li></ol>`;
+TH.cramer = `
+  <p>Für <span class="m"><i>a</i><sub>11</sub><i>x</i><sub>1</sub> + <i>a</i><sub>12</sub><i>x</i><sub>2</sub> = <i>b</i><sub>1</sub></span>, <span class="m"><i>a</i><sub>21</sub><i>x</i><sub>1</sub> + <i>a</i><sub>22</sub><i>x</i><sub>2</sub> = <i>b</i><sub>2</sub></span> mit <span class="m">|<i>A</i>| ≠ 0</span> gilt:</p>
+  <div class="f"><i>x</i><sub>1</sub> = ${F(`det${matHTML([["<i>b</i><sub>1</sub>", "<i>a</i><sub>12</sub>"], ["<i>b</i><sub>2</sub>", "<i>a</i><sub>22</sub>"]])}`, "|<i>A</i>|")} &nbsp;&nbsp; <i>x</i><sub>2</sub> = ${F(`det${matHTML([["<i>a</i><sub>11</sub>", "<i>b</i><sub>1</sub>"], ["<i>a</i><sub>21</sub>", "<i>b</i><sub>2</sub>"]])}`, "|<i>A</i>|")}</div>
+  <ul class="keys"><li>Achte darauf, wo der Vektor der rechten Seite steht: Für <i>x<sub>j</sub></i> ersetzt er die <i>j</i>-te Spalte.</li>
+    <li>Geometrisch ist jede Gleichung eine Gerade. Bei |<i>A</i>| ≠ 0 schneiden sie sich in genau einem Punkt. Bei |<i>A</i>| = 0 sind sie parallel (keine Lösung) oder fallen zusammen (unendlich viele).</li>
+    <li>Skriptaufgabe: 2<i>x</i><sub>1</sub> + 4<i>x</i><sub>2</sub> = 7, 2<i>x</i><sub>1</sub> − 2<i>x</i><sub>2</sub> = −2 ergibt <i>x</i><sub>1</sub> = 1/2, <i>x</i><sub>2</sub> = 3/2.</li></ul>`;
+TH.inv = `
+  <p><i>X</i> heißt Inverse von <i>A</i>, wenn <span class="m"><i>A</i><i>X</i> = <i>X</i><i>A</i> = <i>I</i></span>. Nur quadratische Matrizen können eine Inverse haben, aber nicht jede hat eine.</p>
+  <ul class="keys"><li><b>Existenz:</b> <i>A</i> hat genau dann eine Inverse, wenn <span class="m">|<i>A</i>| ≠ 0</span> (nichtsingulär). Bei |<i>A</i>| = 0 heißt <i>A</i> singulär.</li>
+    <li><b>Eindeutigkeit:</b> Es gibt höchstens eine Inverse <i>A</i><sup>−1</sup>. Das Symbol <i>I</i>/<i>A</i> hat keine Bedeutung.</li></ul>
+  <h4>2 × 2-Formel</h4>
+  <div class="f">${matHTML([["<i>a</i>", "<i>b</i>"], ["<i>c</i>", "<i>d</i>"]])}<sup>−1</sup> = ${F(1, "<i>a</i><i>d</i> − <i>b</i><i>c</i>")} ${matHTML([["<i>d</i>", "−<i>b</i>"], ["−<i>c</i>", "<i>a</i>"]])}</div>
+  <h4>Eigenschaften und Gleichungen</h4>
+  <div class="f">(<i>A</i><sup>−1</sup>)<sup>−1</sup> = <i>A</i> &nbsp; (<i>A</i><i>B</i>)<sup>−1</sup> = <i>B</i><sup>−1</sup><i>A</i><sup>−1</sup> &nbsp; (<i>A</i>′)<sup>−1</sup> = (<i>A</i><sup>−1</sup>)′ &nbsp; (<i>c</i><i>A</i>)<sup>−1</sup> = <i>c</i><sup>−1</sup><i>A</i><sup>−1</sup></div>
+  <div class="f"><i>A</i><i>X</i> = <i>B</i> ⇔ <i>X</i> = <i>A</i><sup>−1</sup><i>B</i> &nbsp;&nbsp; <i>Y</i><i>A</i> = <i>B</i> ⇔ <i>Y</i> = <i>B</i><i>A</i><sup>−1</sup></div>
+  <p>Achtung: <i>A</i><sup>−1</sup><i>B</i> ist im Allgemeinen verschieden von <i>B</i><i>A</i><sup>−1</sup>.</p>`;
+TH.lgs = `
+  <p>Die erweiterte Koeffizientenmatrix <span class="m">(<i>A</i> | <i>b</i>)</span> wird mit elementaren Zeilenoperationen umgeformt. Das Zeichen ~ bedeutet: Die Lösungsmenge bleibt gleich.</p>
+  <ol class="steps"><li>Vertauschen eines Paares von Zeilen.</li><li>Multiplizieren einer Zeile mit einem Skalar ≠ 0.</li><li>Addieren eines Vielfachen einer Zeile zu einer anderen Zeile.</li></ol>
+  <h4>Gauß'sches Eliminationsverfahren (Gauß-Jordan)</h4>
+  <ol class="steps"><li>Treppenstufenform erzeugen, mit 1 als Koeffizient jedes führenden Eintrags.</li><li>Nullen über jedem führenden Eintrag erzeugen.</li><li>Führende Unbekannte durch die nicht führenden ausdrücken. Letztere sind frei wählbar. Ihre Anzahl ist die Zahl der <b>Freiheitsgrade</b>.</li></ol>
+  <ul class="keys"><li>Eine Zeile <span class="m">0 … 0 | <i>c</i></span> mit <i>c</i> ≠ 0 zeigt: Das System ist inkonsistent und hat keine Lösung.</li><li>In den Lösungswegen der App stehen römische Ziffern für die Zeilen, z. B. <code>(ii) − 2·(i)</code>.</li></ul>`;
+TH.lpgraf = `
+  <p>Ein LP-Problem maximiert oder minimiert eine lineare Zielfunktion unter linearen Nebenbedingungen und Nichtnegativitätsbedingungen.</p>
+  <div class="f">max <i>z</i> = <i>c</i><sub>1</sub><i>x</i><sub>1</sub> + … + <i>c<sub>n</sub></i><i>x<sub>n</sub></i> &nbsp; unter &nbsp; <i>a</i><sub><i>i</i>1</sub><i>x</i><sub>1</sub> + … + <i>a<sub>in</sub></i><i>x<sub>n</sub></i> ≤ <i>b<sub>i</sub></i>, &nbsp; <i>x<sub>j</sub></i> ≥ 0</div>
+  <p><b>Kuchenproblem des Bäckers:</b> max 20<i>x</i><sub>1</sub> + 30<i>x</i><sub>2</sub> unter 3<i>x</i><sub>1</sub> + 6<i>x</i><sub>2</sub> ≤ 150 (Mehl), <i>x</i><sub>1</sub> + 0,5<i>x</i><sub>2</sub> ≤ 22 (Zucker), <i>x</i><sub>1</sub> + <i>x</i><sub>2</sub> ≤ 27,5 (Butter). Optimum (5; 22,5) mit Gewinn 775. Vom Zucker bleiben 5,75 kg übrig.</p>
+  <ol class="steps"><li>Begrenzungsgeraden einzeichnen. Die zulässige Menge liegt auf oder unterhalb aller Geraden im 1. Quadranten.</li><li>Höhenlinien <span class="m"><i>c</i><sub>1</sub><i>x</i><sub>1</sub> + <i>c</i><sub>2</sub><i>x</i><sub>2</sub> = <i>c</i></span> sind parallel mit Steigung −<i>c</i><sub>1</sub>/<i>c</i><sub>2</sub>.</li><li>Die Höhenlinie so weit nach Nordosten schieben, bis sie die zulässige Menge gerade noch berührt.</li><li>Den Berührpunkt als Schnittpunkt zweier Geraden berechnen.</li></ol>
+  <ul class="keys"><li>Hat ein LP-Problem eine Lösung, liegt sie in einem <b>Eckpunkt</b>. Alternativ: alle Eckpunkte berechnen und vergleichen.</li><li>Eine Bedingung „≥“ lässt sich durch Multiplikation mit −1 in „≤“ umschreiben. Bei Minimierung (Kostenproblem) liegt die zulässige Menge oft im Nordosten.</li></ul>`;
+TH.simplex = `
+  <p>Mit Schlupfvariablen werden aus den Ungleichungen Gleichungen. <i>y<sub>i</sub></i> misst, wie viel von Ressource <i>i</i> ungenutzt bleibt.</p>
+  <div class="f"><i>z</i> − 20<i>x</i><sub>1</sub> − 30<i>x</i><sub>2</sub> = 0, &nbsp; <i>y</i><sub>1</sub> + 3<i>x</i><sub>1</sub> + 6<i>x</i><sub>2</sub> = 150, &nbsp; <i>y</i><sub>2</sub> + <i>x</i><sub>1</sub> + 0,5<i>x</i><sub>2</sub> = 22, &nbsp; <i>y</i><sub>3</sub> + <i>x</i><sub>1</sub> + <i>x</i><sub>2</sub> = 27,5</div>
+  <p>Setzt man zwei der fünf Variablen null, erhält man eine <b>Basislösung</b>. Sind alle Werte ≥ 0, ist sie zulässig. Zulässige Basislösungen entsprechen genau den Eckpunkten.</p>
+  <ol class="steps">
+    <li>Starttableau mit den Spalten <i>z</i>, <i>y</i><sub>1</sub>, …, <i>y<sub>m</sub></i>, <i>x</i><sub>1</sub>, …, <i>x<sub>n</sub></i>, rechte Seite. Start in <i>x</i> = 0.</li>
+    <li><b>Pivotspalte:</b> die Spalte mit dem am stärksten negativen Eintrag in der ersten Zeile.</li>
+    <li><b>Pivotelement:</b> Quotienten rechte Seite : positiver Eintrag der Pivotspalte bilden. Der kleinste Quotient bestimmt die Zeile.</li>
+    <li>Mit Zeilenoperationen die Pivotspalte zum Einheitsvektor machen (1 an der Stelle des Pivotelements).</li>
+    <li>Wiederholen, bis die erste Zeile keine negativen Einträge mehr hat.</li></ol>
+  <ul class="keys"><li><b>Ablesen:</b> Variablen mit Einheitsvektor-Spalte haben den Wert der rechten Seite, alle anderen sind 0.</li><li>Geometrisch wandert das Verfahren von Eckpunkt zu Eckpunkt (Bäcker: 0 → A → B), wobei <i>z</i> nie abnimmt.</li></ul>`;
+TH.dual = `
+  <p>Wie ändert sich der maximale Gewinn, wenn eine Ressource um eine Einheit wächst? Beim Bäcker: Mehl +10/3, Zucker 0, Butter +10. Diese <b>Grenzgewinne</b> lösen das duale Problem.</p>
+  <div class="f">(P) &nbsp; max <i>c</i>′<i>x</i> &nbsp; unter &nbsp; <i>A</i><i>x</i> ≤ <i>b</i>, <i>x</i> ≥ 0 &nbsp;&nbsp;&nbsp;&nbsp; (D) &nbsp; min <i>b</i>′<i>u</i> &nbsp; unter &nbsp; <i>A</i>′<i>u</i> ≥ <i>c</i>, <i>u</i> ≥ 0</div>
+  <ul class="keys">
+    <li>Die Koeffizienten der Zielfunktion des einen Problems sind die rechten Seiten des anderen. Die Koeffizientenmatrizen sind Transponierte voneinander.</li>
+    <li>Interpretation beim Bäcker: Ein Käufer bietet Preise <i>u</i><sub>1</sub>, <i>u</i><sub>2</sub>, <i>u</i><sub>3</sub> je kg. Der Bäcker verlangt für die Zutaten jeder Sorte mindestens deren Gewinn (3<i>u</i><sub>1</sub> + <i>u</i><sub>2</sub> + <i>u</i><sub>3</sub> ≥ 20, 6<i>u</i><sub>1</sub> + 0,5<i>u</i><sub>2</sub> + <i>u</i><sub>3</sub> ≥ 30), der Käufer minimiert 150<i>u</i><sub>1</sub> + 22<i>u</i><sub>2</sub> + 27,5<i>u</i><sub>3</sub>.</li>
+    <li>Die optimalen Werte beider Probleme sind gleich: <span class="m"><i>b</i>′<i>u</i>* = <i>c</i>′<i>x</i>*</span> (Bäcker: 775).</li>
+    <li>Im Endtableau des Simplexverfahrens stehen <i>u</i><sub>1</sub>*, …, <i>u<sub>m</sub></i>* in der ersten Zeile unter den Schlupfvariablen.</li>
+    <li>Eine Ressource, die im Optimum übrig bleibt, hat den Grenzgewinn 0.</li></ul>`;
+
+/* ---------- Verständnisfragen nach den Skripten ---------- */
+const QUIZ_VERT = [
+  ["Gehört die Bernoulli-Verteilung zur Familie der Binomialverteilungen?", ["Ja, sie ist die Binomialverteilung mit n = 1.", "Nein, sie ist eine stetige Verteilung.", "Nur für p = 1/2.", "Nein, sie hat drei Parameter."], "f_Be(x; p) = f_Bi(x; p, 1): ein einzelnes Bernoulli-Experiment."],
+  ["In welchem Sinn ist die Binomialverteilung Grenzverteilung der hypergeometrischen Verteilung?", ["Für N → ∞ bei festem Anteil p = S/N strebt f_Hy gegen f_Bi.", "Für n → 0.", "Für p → 1.", "Gar nicht, beide sind immer identisch."], "Bei sehr großer Grundgesamtheit spielt es kaum eine Rolle, ob zurückgelegt wird. Der Korrekturfaktor (N − n)/(N − 1) geht gegen 1."],
+  ["Wie verhalten sich bei gleichem n und p die Varianzen von hypergeometrischer und Binomialverteilung?", ["Die hypergeometrische ist kleiner, um den Faktor (N − n)/(N − 1).", "Die hypergeometrische ist größer.", "Beide sind immer gleich.", "Das hängt nur von x ab."], "Var_Hy = np(1 − p) · (N − n)/(N − 1). Ohne Zurücklegen sinkt die Streuung."],
+  ["Warum hat die Poisson-Verteilung nur einen Parameter?", ["Sie entsteht für n → ∞, p → 0 mit np → λ, und E(X) = Var(X) = λ.", "Weil n immer 1 ist.", "Weil sie stetig ist.", "Weil p immer 1/2 ist."], "Von n und p bleibt im Grenzübergang nur ihr Produkt λ übrig."],
+  ["Wozu benutzt man die Poisson-Verteilung typischerweise?", ["Für seltene Ereignisse (z. B. Bestellungen pro Tag, Kreditausfälle) und als Näherung der Binomialverteilung bei großem n und kleinem p", "Für Körpergrößen", "Für Ziehen ohne Zurücklegen", "Für Wartezeiten in stetiger Zeit"], "Beispiele im Skript: E-Mail-Bestellungen mit λ = 4 pro Tag, Roulette, Kreditportfolio mit λ = 10."],
+  ["Was verbindet geometrische Verteilung und Exponentialverteilung?", ["Beide beschreiben Wartezeiten. Die Exponentialverteilung ist das stetige Pendant der geometrischen.", "Beide sind symmetrisch.", "Beide haben zwei Parameter.", "Beide sind Grenzverteilungen der Normalverteilung."], "Geometrisch: Anzahl der Misserfolge (diskret). Exponential: Wartezeit oder Lebensdauer (stetig). Beide sind Ein-Parameter-Familien."],
+  ["Warum braucht man beim Rechnen mit Normalverteilungen nur die Tafel der Standardnormalverteilung?", ["Weil F_N(x) = F_St((x − μ)/σ) gilt.", "Weil alle Normalverteilungen gleich sind.", "Weil σ immer 1 ist.", "Weil man nur mit ganzen Zahlen rechnet."], "Standardisierung ist eine reine Maßstabstransformation."],
+  ["Warum gilt die Normalverteilung als die wichtigste Verteilung der Statistik?", ["Viele empirische Verteilungen sind annähernd normal, sie approximiert Binomial- und Poisson-Verteilung, und Stichprobenmittelwerte nähern sich ihr an.", "Weil sie diskret ist.", "Weil sie nur einen Parameter hat.", "Weil sie immer rechtsschief ist."], "Diese Gründe nennt das Skript. Dazu kommt, dass viele theoretische Modelle auf ihr aufbauen."],
+  ["Welche Eigenschaft hat jede Verteilungsfunktion F(x)?", ["Sie ist monoton steigend und hat die Grenzwerte 0 und 1.", "Sie ist überall stetig.", "Sie kann Werte über 1 annehmen.", "Sie ist symmetrisch um 0."], "Außerdem ist sie rechtsseitig stetig. Bei diskreten Zufallsvariablen ist sie eine Treppenfunktion."],
+  ["Var(a + bX) = …", ["b² · Var(X)", "a + b · Var(X)", "b · Var(X)", "a² + b² · Var(X)"], "Die Verschiebung a ändert die Streuung nicht, die Streckung b geht quadratisch ein."],
+  ["Welche Werte haben E(Z) und Var(Z) für eine standardisierte Zufallsvariable Z = (X − μ)/σ?", ["E(Z) = 0 und Var(Z) = 1", "E(Z) = μ und Var(Z) = σ²", "E(Z) = 1 und Var(Z) = 0", "Das hängt von der Verteilung ab."], "Jede standardisierte Zufallsvariable hat Mittelwert 0 und Varianz 1."],
+  ["Was liefert die Tschebyschev-Ungleichung für k = 2?", ["P(|X − μ| ≥ 2σ) ≤ 0,25 für jede Verteilung", "P(|X − μ| ≥ 2σ) = 0,0456", "P(|X − μ| ≤ 2σ) ≤ 0,25", "Nur bei Normalverteilung eine Aussage"], "1/k² = 1/4. Die Schranke gilt verteilungsfrei und ist dafür oft grob."],
+  ["Welche Aussage über eine stetige Zufallsvariable stimmt?", ["P(X = a) = 0 für jeden einzelnen Wert a.", "Die Dichte darf nie größer als 1 sein.", "F(x) ist eine Treppenfunktion.", "E(X) existiert nur bei symmetrischen Dichten."], "Wahrscheinlichkeiten sind Flächen unter der Dichte. Über einem einzelnen Punkt ist die Fläche null."],
+  ["Für welche p ist eine Binomialverteilung symmetrisch?", ["p = 1/2", "p < 1/2", "p > 1/2", "für alle p"], "p < 1/2 gibt linkssteile, p > 1/2 rechtssteile Verteilungen."],
+  ["Was ist bei der Lognormalverteilung normalverteilt?", ["ln X", "X", "X²", "1/X"], "Sie ist rechtsschief. Ihre Parameter m und s sind nicht die Momente. Im Kreditrisikomanagement modelliert sie aggregierte Verluste."],
+  ["Was ist eine Familie oder Klasse von Verteilungen?", ["Verteilungen gleicher Bauart, die sich nur in ihren Parametern unterscheiden", "Alle diskreten Verteilungen", "Verteilungen mit gleichem Erwartungswert", "Eine empirische Häufigkeitsverteilung"], "Binomial: Zwei-Parameter-Familie (n, p). Poisson: Ein-Parameter-Familie (λ). Hypergeometrisch: Drei-Parameter-Familie."],
+  ["Was besagt der Steinersche Verschiebungssatz?", ["Var(X) = E[(X − d)²] − (μ − d)² für jede Zahl d", "Var(X) = E(X²) + μ²", "Var(X) = E(X) − μ²", "Var(X) = E[(X − d)²] + (μ − d)²"], "Mit d = 0 folgt die vereinfachte Berechnung Var(X) = E(X²) − μ²."],
+  ["Wofür braucht eine Bank im Kreditrisikomanagement Eigenkapital als Puffer?", ["Für unerwartete Verluste, die über den Erwartungswert hinausgehen", "Für den erwarteten Verlust", "Für die Zinsmarge", "Für die Varianz der Poisson-Verteilung"], "Der erwartete Verlust soll durch die Zinsmarge gedeckt sein. Das Eigenkapital deckt unerwartete Verluste und hält die Insolvenzwahrscheinlichkeit klein."]
+];
+const QUIZ_LIN2 = [
+  ["Was ist das Ergebnis des inneren Produkts a · b zweier n-Vektoren?", ["Eine Zahl (Skalar)", "Ein n-Vektor", "Eine n × n-Matrix", "Ein Winkel"], "a · b = a₁b₁ + … + aₙbₙ. Es ist nur bei gleicher Dimension definiert."],
+  ["Wann sind zwei Vektoren a und b orthogonal?", ["Wenn a · b = 0", "Wenn ‖a‖ = ‖b‖", "Wenn a = −b", "Wenn a · b = 1"], "Das folgt aus dem Satz des Pythagoras: ‖a‖² + ‖b‖² = ‖a − b‖² gilt genau dann, wenn −2a · b = 0."],
+  ["A ist 6 × 3 und B ist 3 × 5. Was gilt?", ["AB ist 6 × 5, BA ist nicht definiert.", "AB und BA sind beide definiert.", "AB ist 3 × 3.", "Keines der Produkte ist definiert."], "Spaltenzahl von A muss gleich Zeilenzahl von B sein. Für BA müsste B 3 Spalten haben, hat aber 5."],
+  ["Was folgt aus AB = 0 (Nullmatrix)?", ["Nichts Bestimmtes: A und B können beide von 0 verschieden sein.", "A = 0 oder B = 0", "A = B", "BA = 0"], "Skriptbeispiel: A = (1 3; 2 6) und B = (1 2; −3 −6) ergeben AB = 0."],
+  ["Darf man aus AB = AC mit A ≠ 0 auf B = C schließen?", ["Nein, Kürzen ist bei Matrizen nicht erlaubt.", "Ja, immer.", "Nur bei 2 × 2-Matrizen.", "Nur wenn B symmetrisch ist."], "Erst wenn A invertierbar ist, folgt durch Multiplikation mit A⁻¹ von links B = C."],
+  ["Warum ist AA + AB + BA + BB nicht dasselbe wie AA + 2AB + BB?", ["Weil AB und BA im Allgemeinen verschieden sind.", "Weil AA nicht definiert ist.", "Weil die Matrizenaddition nicht kommutativ ist.", "Es ist doch dasselbe."], "Die Matrizenmultiplikation ist nicht kommutativ, die Faktoren dürfen nicht vertauscht werden."],
+  ["(AB)′ = …", ["B′A′", "A′B′", "AB", "BA"], "Beim Transponieren dreht sich die Reihenfolge um, genauso wie beim Invertieren: (AB)⁻¹ = B⁻¹A⁻¹."],
+  ["Wann ist eine quadratische Matrix A symmetrisch?", ["Wenn A = A′", "Wenn |A| = 1", "Wenn alle Einträge positiv sind", "Wenn A = −A"], "Dann gilt aᵢⱼ = aⱼᵢ für alle i, j."],
+  ["Für eine 3 × 3-Matrix A ist |2A| = …", ["8 · |A|", "2 · |A|", "6 · |A|", "|A|"], "|αA| = αⁿ |A|, hier 2³ = 8."],
+  ["Was passiert mit der Determinante, wenn ein Vielfaches einer Zeile zu einer anderen addiert wird?", ["Sie bleibt unverändert.", "Sie wechselt das Vorzeichen.", "Sie wird 0.", "Sie wird mit dem Faktor multipliziert."], "Deshalb kann man die Determinante auch mit Gauß-Schritten vereinfachen."],
+  ["Zwei Zeilen einer Matrix sind proportional. Dann ist …", ["|A| = 0", "|A| = 1", "|A| negativ", "A symmetrisch"], "Proportionale Zeilen machen die Matrix singulär."],
+  ["Wann hat eine quadratische Matrix A eine Inverse?", ["Genau dann, wenn |A| ≠ 0 (nichtsingulär)", "Wenn alle Einträge ≠ 0 sind", "Wenn A symmetrisch ist", "Immer"], "Aus AX = I folgt |A| · |X| = 1, also |A| ≠ 0. Die Bedingung ist auch hinreichend."],
+  ["Die Matrixgleichung AX = B mit |A| ≠ 0 hat die Lösung …", ["X = A⁻¹B", "X = BA⁻¹", "X = B/A", "X = AB⁻¹"], "Von links mit A⁻¹ multiplizieren. Für YA = B gilt dagegen Y = BA⁻¹."],
+  ["Bei der Cramer'schen Regel steht im Zähler von x₁ …", ["die Determinante von A, deren erste Spalte durch b ersetzt ist", "die Determinante von A", "die erste Zeile von A", "das Produkt b₁ · a₁₁"], "Für xⱼ wird die j-te Spalte durch die rechte Seite ersetzt."],
+  ["Was ist die Anzahl der Freiheitsgrade eines lösbaren linearen Gleichungssystems?", ["Die Anzahl der frei wählbaren, nicht führenden Unbekannten", "Die Anzahl der Gleichungen", "Die Anzahl der Nullzeilen", "Immer 1"], "Gibt es keine freien Unbekannten, ist die Lösung eindeutig."],
+  ["Wo liegt die optimale Lösung eines lösbaren LP-Problems?", ["In einem Eckpunkt der zulässigen Menge", "Immer im Ursprung", "Im Schwerpunkt der zulässigen Menge", "Auf der x₁-Achse"], "Das Simplexverfahren nutzt das und wandert von Eckpunkt zu Eckpunkt."],
+  ["Was misst die Schlupfvariable y₁ im Kuchenproblem?", ["Die Menge Mehl in kg, die nicht verbraucht wird", "Den Gewinn je Dutzend", "Die Anzahl Kuchen der Sorte A", "Den Preis für Mehl"], "y₁ = 150 − 3x₁ − 6x₂ ≥ 0."],
+  ["Nach welcher Regel wählt man die Pivotspalte im Simplexverfahren?", ["Spalte mit dem am stärksten negativen Eintrag in der ersten Zeile", "Spalte mit dem größten Eintrag der rechten Seite", "Immer die Spalte von x₁", "Spalte mit dem kleinsten positiven Eintrag"], "Danach bestimmt der kleinste Quotient rechte Seite : positiver Pivotspalteneintrag das Pivotelement."],
+  ["Wann endet das Simplexverfahren (Maximierung)?", ["Wenn die erste Zeile keine negativen Einträge mehr hat", "Nach genau zwei Iterationen", "Wenn alle Schlupfvariablen 0 sind", "Wenn die rechte Seite negativ wird"], "Dann kann z durch Erhöhen einer Nichtbasisvariablen nicht mehr wachsen."],
+  ["Wie entsteht das duale Problem zu max c′x unter Ax ≤ b, x ≥ 0?", ["min b′u unter A′u ≥ c, u ≥ 0", "max b′u unter Au ≤ c", "min c′u unter Au ≥ b", "max c′x unter A′x ≥ b"], "Zielfunktionskoeffizienten und rechte Seiten tauschen die Rollen, die Matrix wird transponiert."],
+  ["Im Bäcker-Optimum bleiben 5,75 kg Zucker übrig. Welchen Grenzgewinn hat ein zusätzliches kg Zucker?", ["0", "10/3", "10", "5,75"], "Eine nicht ausgeschöpfte Ressource ist nicht knapp. Ihr Schattenpreis u₂* ist 0."]
+];
+
 /* ---------- Themen ---------- */
+const AUS_S = "Ausblick: Schätzen & Testen", AUS_L = "Ausblick: weiterführend";
 const TOPICS = [
-  { id: "ki", subj: "stat", title: "Konfidenzintervalle für μ", lead: "Wie genau ist ein Mittelwert aus der Stichprobe? Mit z- und t-Quantil.", theory: TH.ki, tool: toolKISim, gen: genKI },
-  { id: "kip", subj: "stat", title: "Konfidenzintervalle für Anteile", lead: "Umfragen auswerten: Wie sicher ist ein beobachteter Anteil?", theory: TH.kip, gen: genKIp },
-  { id: "n", subj: "stat", title: "Stichprobenumfang planen", lead: "Wie viele Beobachtungen braucht man für eine gewünschte Genauigkeit?", theory: TH.n, gen: genN },
-  { id: "test", subj: "stat", title: "Hypothesentests für μ", lead: "Gauß-Test und t-Test: ein-, zweiseitig, mit p-Wert oder kritischem Wert.", theory: TH.test, tool: toolPValue, gen: genTest },
-  { id: "ptest", subj: "stat", title: "Test für Anteile", lead: "Hat sich ein Anteil gegenüber einem Referenzwert verändert?", theory: TH.ptest, gen: genPTest },
-  { id: "fehler", subj: "stat", title: "Fehler 1. und 2. Art", lead: "α, β und die Güte eines Tests, und wie n sie beeinflusst.", theory: TH.fehler, tool: toolFehler, gen: genFehler },
-  { id: "qstat", subj: "stat", title: "Verständnisfragen", lead: "Begriffe und typische Fehlinterpretationen der induktiven Statistik.", quiz: QUIZ_STAT },
-  { id: "mm", subj: "lin", title: "Matrizen multiplizieren", lead: "Zeile mal Spalte, Formate und Rechenregeln.", theory: TH.mm, gen: genMatMul },
-  { id: "det", subj: "lin", title: "Determinanten", lead: "2×2, 3×3 mit Laplace oder Sarrus, und was die Zahl bedeutet.", theory: TH.det, gen: genDet },
-  { id: "lgs", subj: "lin", title: "Gauß-Verfahren", lead: "Lineare Gleichungssysteme systematisch lösen.", theory: TH.lgs, gen: genLGS },
-  { id: "inv", subj: "lin", title: "Inverse Matrix", lead: "Wann es sie gibt und wie man sie berechnet.", theory: TH.inv, gen: genInverse },
-  { id: "rang", subj: "lin", title: "Rang & lineare Unabhängigkeit", lead: "Wie viele wirklich verschiedene Richtungen stecken in einer Matrix?", theory: TH.rang, gen: genRang },
-  { id: "vek", subj: "lin", title: "Skalarprodukt & Winkel", lead: "Längen, Winkel und Orthogonalität im ℝ³.", theory: TH.vek, gen: genVek },
-  { id: "abb", subj: "lin", title: "Lineare Abbildungen", lead: "Matrizen als Bewegungen der Ebene: sehen, was A mit dem Gitter macht.", theory: TH.abb, tool: toolLinMap, gen: genAbb },
-  { id: "eig", subj: "lin", title: "Eigenwerte & Eigenvektoren", lead: "Richtungen, die eine Matrix nur streckt.", theory: TH.eig, tool: toolLinMap, gen: genEigen },
-  { id: "qlin", subj: "lin", title: "Verständnisfragen", lead: "Rechenregeln und Zusammenhänge der linearen Algebra.", quiz: QUIZ_LIN }
+  { id: "zv", subj: "stat", group: "Zufallsvariablen", title: "Zufallsvariablen & Verteilungsfunktion", lead: "Massenfunktion, Verteilungsfunktion, Erwartungswert und Varianz.", theory: TH.zv, gen: genZV },
+  { id: "trafo", subj: "stat", group: "Zufallsvariablen", title: "Rechenregeln & Standardisieren", lead: "E(a + bX), Var(a + bX), Steinerscher Satz und z-Werte.", theory: TH.trafo, gen: genTrafo },
+  { id: "tsch", subj: "stat", group: "Zufallsvariablen", title: "Tschebyschev-Ungleichung", lead: "Wahrscheinlichkeiten abschätzen, ohne die Verteilung zu kennen.", theory: TH.tsch, gen: genTsch },
+  { id: "kombi", subj: "stat", group: "Diskrete Verteilungen", title: "Kombinatorik", lead: "Fakultät, Binomialkoeffizient, Permutationen und Kombinationen.", theory: TH.kombi, gen: genKombi },
+  { id: "binom", subj: "stat", group: "Diskrete Verteilungen", title: "Bernoulli- & Binomialverteilung", lead: "Erfolge zählen bei unabhängigen Wiederholungen.", theory: TH.binom, tool: toolDist, gen: genBinomA },
+  { id: "hyper", subj: "stat", group: "Diskrete Verteilungen", title: "Hypergeometrische Verteilung", lead: "Ziehen ohne Zurücklegen und der Korrekturfaktor.", theory: TH.hyper, tool: toolDist, gen: genHyper },
+  { id: "pois", subj: "stat", group: "Diskrete Verteilungen", title: "Poisson-Verteilung", lead: "Seltene Ereignisse und die Näherung der Binomialverteilung.", theory: TH.pois, tool: toolDist, gen: genPois },
+  { id: "geo", subj: "stat", group: "Diskrete Verteilungen", title: "Geometrische Verteilung", lead: "Misserfolge bis zum ersten Erfolg.", theory: TH.geo, tool: toolDist, gen: genGeo },
+  { id: "stetig", subj: "stat", group: "Stetige Verteilungen", title: "Rechteck- & Exponentialverteilung", lead: "Gleichförmige Wartezeiten und Lebensdauern.", theory: TH.stetig, tool: toolDist, gen: genStetig },
+  { id: "normal", subj: "stat", group: "Stetige Verteilungen", title: "Normalverteilung", lead: "Standardisieren und Wahrscheinlichkeiten aus der Tafel ablesen.", theory: TH.normal, tool: toolDist, gen: genNormal },
+  { id: "qstat", subj: "stat", group: "Wiederholung", title: "Verständnisfragen", lead: "Kontrollfragen aus den Skripten zu Zufallsvariablen und Verteilungen.", quiz: QUIZ_VERT },
+  { id: "ki", subj: "stat", group: AUS_S, title: "Konfidenzintervalle für μ", lead: "Wie genau ist ein Mittelwert aus der Stichprobe? Mit z- und t-Quantil.", theory: TH.ki, tool: toolKISim, gen: genKI },
+  { id: "kip", subj: "stat", group: AUS_S, title: "Konfidenzintervalle für Anteile", lead: "Umfragen auswerten: Wie sicher ist ein beobachteter Anteil?", theory: TH.kip, gen: genKIp },
+  { id: "n", subj: "stat", group: AUS_S, title: "Stichprobenumfang planen", lead: "Wie viele Beobachtungen braucht man für eine gewünschte Genauigkeit?", theory: TH.n, gen: genN },
+  { id: "test", subj: "stat", group: AUS_S, title: "Hypothesentests für μ", lead: "Gauß-Test und t-Test: ein-, zweiseitig, mit p-Wert oder kritischem Wert.", theory: TH.test, tool: toolPValue, gen: genTest },
+  { id: "ptest", subj: "stat", group: AUS_S, title: "Test für Anteile", lead: "Hat sich ein Anteil gegenüber einem Referenzwert verändert?", theory: TH.ptest, gen: genPTest },
+  { id: "fehler", subj: "stat", group: AUS_S, title: "Fehler 1. und 2. Art", lead: "α, β und die Güte eines Tests, und wie n sie beeinflusst.", theory: TH.fehler, tool: toolFehler, gen: genFehler },
+  { id: "qtest", subj: "stat", group: AUS_S, title: "Fragen zum Schätzen & Testen", lead: "Begriffe und typische Fehlinterpretationen beim Schätzen und Testen.", quiz: QUIZ_STAT },
+  { id: "vek", subj: "lin", group: "Vektoren & Matrizen", title: "Vektoren & inneres Produkt", lead: "Bewegungen, Länge, Skalarprodukt und Orthogonalität.", theory: TH.vek, gen: genVek },
+  { id: "matops", subj: "lin", group: "Vektoren & Matrizen", title: "Matrizen & Transponierte", lead: "Ordnung, Summe, Vielfache, Transponierte und symmetrische Matrizen.", theory: TH.matops, gen: genMatOps },
+  { id: "mm", subj: "lin", group: "Vektoren & Matrizen", title: "Matrizenmultiplikation", lead: "Zeile mal Spalte, Rechenregeln und ökonomische Anwendungen.", theory: TH.mm, gen: genMatMul },
+  { id: "det", subj: "lin", group: "Determinanten & Inverse", title: "Determinanten", lead: "Ordnung 2 und 3, Co-Faktoren und die Determinantenregeln.", theory: TH.det, gen: genDet },
+  { id: "cramer", subj: "lin", group: "Determinanten & Inverse", title: "Cramer'sche Regel", lead: "Gleichungssysteme mit zwei Unbekannten über Determinanten lösen.", theory: TH.cramer, gen: genCramer },
+  { id: "inv", subj: "lin", group: "Determinanten & Inverse", title: "Inverse Matrizen", lead: "Existenz, Eindeutigkeit und Lösen durch Matrixinversion.", theory: TH.inv, gen: genInverse },
+  { id: "lgs", subj: "lin", group: "Gleichungssysteme", title: "Gauß'sches Eliminationsverfahren", lead: "Treppenstufenform, Freiheitsgrade und inkonsistente Systeme.", theory: TH.lgs, gen: genLGS },
+  { id: "lpgraf", subj: "lin", group: "Lineare Optimierung", title: "LP-Probleme grafisch lösen", lead: "Zulässige Menge, Höhenlinien und das Optimum im Eckpunkt.", theory: TH.lpgraf, tool: toolLP, gen: genLPGraf },
+  { id: "simplex", subj: "lin", group: "Lineare Optimierung", title: "Simplexverfahren", lead: "Schlupfvariablen, Pivotspalte, Pivotelement und Ablesen der Lösung.", theory: TH.simplex, gen: genSimplex },
+  { id: "dual", subj: "lin", group: "Lineare Optimierung", title: "Duales Problem & Grenzgewinne", lead: "Was eine zusätzliche Einheit jeder Ressource wert ist.", theory: TH.dual, gen: genDual },
+  { id: "qlin", subj: "lin", group: "Wiederholung", title: "Verständnisfragen", lead: "Rechenregeln und Zusammenhänge aus beiden Skripten zur linearen Algebra.", quiz: QUIZ_LIN2 },
+  { id: "rang", subj: "lin", group: AUS_L, title: "Rang & lineare Unabhängigkeit", lead: "Wie viele wirklich verschiedene Richtungen stecken in einer Matrix?", theory: TH.rang, gen: genRang },
+  { id: "abb", subj: "lin", group: AUS_L, title: "Lineare Abbildungen", lead: "Matrizen als Bewegungen der Ebene: sehen, was A mit dem Gitter macht.", theory: TH.abb, tool: toolLinMap, gen: genAbb },
+  { id: "eig", subj: "lin", group: AUS_L, title: "Eigenwerte & Eigenvektoren", lead: "Richtungen, die eine Matrix nur streckt.", theory: TH.eig, tool: toolLinMap, gen: genEigen }
 ];
 const SUBJ = { stat: "Induktive Statistik", lin: "Lineare Algebra" };
 
 /* ---------- Zustand & Navigation ---------- */
-let view = store.get("mt-view", { subj: "stat", topic: { stat: "ki", lin: "mm" } });
-if (!view.topic) view.topic = { stat: "ki", lin: "mm" };
+let view = store.get("mt-view2", { subj: "stat", topic: { stat: "zv", lin: "vek" } });
+if (!view.topic) view.topic = { stat: "zv", lin: "vek" };
 let cleanups = [];
 let redrawers = [];
 const app = $("#app"), main = $("#main");
@@ -1045,13 +2054,15 @@ function renderTopicList() {
     ul.innerHTML = Object.entries(SUBJ).map(([k, v]) => `<li><button type="button" data-goto="${k}">${v}</button></li>`).join("");
     return;
   }
+  let grp = "";
   ul.innerHTML = TOPICS.filter(t => t.subj === subj).map(t => {
     const p = progress[t.id];
     const sc = p ? `<span class="score${p.c >= 5 ? " full" : ""}">${p.c}/${p.t}</span>` : "";
-    return `<li><button type="button" data-topic="${t.id}" aria-current="${view.topic[subj] === t.id}"><span>${t.title}</span>${sc}</button></li>`;
+    const head = t.group !== grp ? `<li class="grp${t.group.startsWith("Ausblick") ? " aus" : ""}">${(grp = t.group)}</li>` : "";
+    return `${head}<li><button type="button" data-topic="${t.id}" aria-current="${view.topic[subj] === t.id}"><span>${t.title}</span>${sc}</button></li>`;
   }).join("");
 }
-function saveView() { store.set("mt-view", view); }
+function saveView() { store.set("mt-view2", view); }
 function render() {
   cleanups.forEach(f => f()); cleanups = []; redrawers = [];
   app.dataset.subject = view.subj === "lin" ? "lin" : "stat";
@@ -1061,7 +2072,7 @@ function render() {
   if (view.subj === "prog") return renderProgress();
   const t = TOPICS.find(x => x.id === view.topic[view.subj]) || TOPICS.find(x => x.subj === view.subj);
   main.innerHTML = `
-    <header class="t-head"><p class="eyebrow">${SUBJ[t.subj]}</p><h2>${t.title}</h2><p class="lead">${t.lead}</p></header>
+    <header class="t-head"><p class="eyebrow">${SUBJ[t.subj]} · ${t.group}</p><h2>${t.title}</h2><p class="lead">${t.lead}</p>${t.group.startsWith("Ausblick") ? `<p class="aus-note">Dieses Thema steht nicht in deinen hochgeladenen Skripten. Es ist als Ausblick auf typische Klausurthemen gedacht.</p>` : ""}</header>
     ${t.theory ? `<section class="theory" aria-label="Kurz erklärt">${t.theory}</section>` : ""}
     ${t.tool ? `<section class="card"><div class="card-head"><h3>Ausprobieren</h3></div><div id="tool"></div></section>` : ""}
     ${t.gen ? `<section class="card"><div class="card-head"><h3>Üben</h3><span class="meta" id="ex-meta"></span></div><div id="ex"></div></section>` : ""}
